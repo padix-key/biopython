@@ -11,18 +11,20 @@
 import numpy as np
 import Bio.PDB
 
-class AtomPropertyList(object):
+class _AtomPropertyList(object):
     
-    def __init__(self, length: int):
-        self.chain = np.zeros(length, dtype=str)
+    def __init__(self, length: int=None):
+        if length == None:
+            return
+        self.chain_id = np.zeros(length, dtype="U1")
         self.res_id = np.zeros(length, dtype=int)
-        self.res_name = np.zeros(length, dtype=str)
-        self.atom_name = np.zeros(length, dtype=str)
-        self.hetfield = np.zeros(length, dtype=str)
+        self.res_name = np.zeros(length, dtype="U3")
+        self.atom_name = np.zeros(length, dtype="U4")
+        self.hetero = np.zeros(length, dtype="U3")
         self._length = length
         
     def check_integrity(self):
-        if self.chain.shape != (self._length,):
+        if self.chain_id.shape != (self._length,):
             return False
         if self.res_id.shape != (self._length,):
             return False
@@ -30,28 +32,36 @@ class AtomPropertyList(object):
             return False
         if self.atom_name.shape != (self._length,):
             return False
-        if self.hetfield.shape != (self._length,):
+        if self.hetero.shape != (self._length,):
             return False
         return True
-
+    
 
 class Atom(object):
     
-    def __init__(self, chain: str, res_id: int, res_name: str, atom_name: str, hetfield: str="", pos=np.zeros(3)):
-        self.chain = chain
+    def __init__(self, chain_id: str, res_id: int, res_name: str,
+                 atom_name: str, hetero: str="", pos=np.zeros(3)):
+        self.chain_id = chain_id
         self.res_id = res_id
         self.res_name = res_name
         self.atom_name = atom_name
-        self.hetfield = hetfield
+        self.hetero = hetero
         pos = np.array(pos, dtype=float)
         if pos.shape != (3,):
             raise ValueError("Position must be ndarray with shape (3,)")
         self.pos = pos
+    
+    def __str__(self):
+        return (self.chain_id + "\t" + str(self.res_id) + "\t" +
+                self.res_name + "\t" + self.atom_name + "\t" + 
+                self.hetero + "\t" + str(self.pos))
 
     
-class AtomArray(AtomPropertyList):
+class AtomArray(_AtomPropertyList):
     
-    def __init__(self, length):
+    def __init__(self, length: int=None):
+        if length == None:
+            return
         super().__init__(length)
         self.pos = np.zeros((length, 3), dtype=float)
         
@@ -61,9 +71,45 @@ class AtomArray(AtomPropertyList):
         if self.pos.shape != (self._length, 3):
             return False
         return True
+    
+    def get_atom(self, index):
+        return Atom(chain_id = self.chain_id[index],
+                    res_id = self.res_id[index],
+                    res_name = self.res_name[index],
+                    atom_name = self.atom_name[index],
+                    hetero = self.hetero[index],
+                    pos = self.pos[index])
+    
+    def __iter__(self):
+        i = 0
+        while i < self._length:
+            yield self.get_atom(i)
+            i += 1
+    
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return self.get_atom(index)
+        else:
+            new_array = AtomArray()
+            new_array.chain_id = self.chain_id.__getitem__(index)
+            new_array.res_id = self.res_id.__getitem__(index)
+            new_array.res_name = self.res_name.__getitem__(index)
+            new_array.atom_name = self.atom_name.__getitem__(index)
+            new_array.hetero = self.hetero.__getitem__(index)
+            new_array.pos = self.pos.__getitem__(index)
+            new_array._length = len(new_array.pos)
+            if not new_array.check_integrity():
+                raise IndexError("Index created invalid AtomArray")
+            return new_array
+            
+    def __str__(self):
+        string = ""
+        for atom in self:
+            string += str(atom) + "\n"
+        return string
 
 
-class AtomArrayStack(AtomPropertyList):
+class AtomArrayStack(_AtomPropertyList):
     
     def __init__(self, depth: int, length: int):
         super().__init__(length)
@@ -78,13 +124,38 @@ class AtomArrayStack(AtomPropertyList):
         return True
 
 
-def to_array(model: Bio.PDB.Model, insertion_code: str=""):
-    pass
+def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
+    arr = AtomArray(_get_model_length(model))
+    i = 0
+    for chain in model:
+        for residue in chain:
+            insertion = _get_insertion_code(residue)
+            if insertion == insertion_code:
+                for atom in residue:
+                    arr.chain_id[i] = chain.id
+                    arr.hetero[i] = residue.id[0]
+                    arr.res_id[i] = int(residue.id[1])
+                    arr.res_name[i] = residue.get_resname()
+                    arr.atom_name[i] = atom.get_id()
+                    arr.pos[i] = atom.get_coord()
+                    i += 1
+    return arr
 
 
 def to_model(array: AtomArray):
     pass
 
 
-def _get_model_length(model):
-    pass
+def _get_model_length(model: Bio.PDB.Model.Model, insertion_code: str=""):
+    length = 0
+    for chain in model:
+        for residue in chain:
+            insertion = _get_insertion_code(residue)
+            if insertion == insertion_code:
+                for atom in residue:
+                    length += 1
+    return length
+
+
+def _get_insertion_code(residue: Bio.PDB.Residue.Residue):
+    return residue.id[2].strip()
