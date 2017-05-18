@@ -65,6 +65,20 @@ class AtomArray(_AtomPropertyList):
         super().__init__(length)
         self.pos = np.zeros((length, 3), dtype=float)
         
+    def copy(self):
+        new_array = AtomArray()
+        new_array.chain_id = np.copy(self.chain_id)
+        new_array.res_id = np.copy(self.res_id)
+        new_array.res_name = np.copy(self.res_name)
+        new_array.atom_name = np.copy(self.atom_name)
+        new_array.hetero = np.copy(self.hetero)
+        new_array.pos = np.copy(self.pos)
+        new_array._length = self._length
+        return new_array
+        
+    def sort(self):
+        pass
+        
     def check_integrity(self):
         if not super().check_integrity():
             return False
@@ -101,7 +115,53 @@ class AtomArray(_AtomPropertyList):
             if not new_array.check_integrity():
                 raise IndexError("Index created invalid AtomArray")
             return new_array
-            
+        
+    def __setitem__(self, index: int, atom: Atom):
+        if isinstance(index, int):
+            self.chain_id[index] = atom.chain_id
+            self.res_id[index] = atom.res_id
+            self.res_name[index] = atom.res_name
+            self.atom_name[index] = atom.atom_name
+            self.hetero[index] = atom.hetero
+            self.pos[index] = atom.pos
+        else:
+            raise IndexError("Index must be integer")
+        
+    def __delitem__(self, index: int):
+        if isinstance(index, int):
+            self.chain_id = np.delete(self.chain_id, index, axis=0)
+            self.res_id = np.delete(self.res_id, index, axis=0)
+            self.res_name = np.delete(self.res_name, index, axis=0)
+            self.atom_name = np.delete(self.atom_name, index, axis=0)
+            self.hetero = np.delete(self.hetero, index, axis=0)
+            self.pos = np.delete(self.pos, index, axis=0)
+            self._length -= 1
+        else:
+            raise IndexError("Index must be integer")
+        
+    def __len__(self):
+        return self._length
+    
+    def __eq__(self, item):
+        if not isinstance(item, AtomArray):
+            return False
+        if not np.array_equal(self.chain_id, item.chain_id):
+            return False
+        if not np.array_equal(self.res_id, item.res_id):
+            return False
+        if not np.array_equal(self.res_name, item.res_name):
+            return False
+        if not np.array_equal(self.atom_name, item.atom_name):
+            return False
+        if not np.array_equal(self.hetero, item.hetero):
+            return False
+        if not np.array_equal(self.pos, item.pos):
+            return False
+        return True
+    
+    def __ne__(self, item):
+        return not self.__eq__(item)
+    
     def __str__(self):
         string = ""
         for atom in self:
@@ -122,6 +182,30 @@ class AtomArrayStack(_AtomPropertyList):
         if self.pos.shape != (self._depth, self._length, 3):
             return False
         return True
+    
+    def get_array(self, index):
+        pass
+    
+    def __iter__(self):
+        i = 0
+        while i < self._depth:
+            yield self.get_array(i)
+            i += 1
+            
+    def __getitem__(self, index):
+        pass
+    
+    def __len__(self):
+        return self._depth
+    
+    def __eq__(self, item):
+        pass
+    
+    def __ne__(self, item):
+        return not self.__eq__(item)
+    
+    def __str__(self):
+        pass
 
 
 def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
