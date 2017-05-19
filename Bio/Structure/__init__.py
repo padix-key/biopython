@@ -36,6 +36,24 @@ class _AtomPropertyList(object):
             return False
         return True
     
+    def __eq__(self, item):
+        if not isinstance(item, _AtomPropertyList):
+            return False
+        if not np.array_equal(self.chain_id, item.chain_id):
+            return False
+        if not np.array_equal(self.res_id, item.res_id):
+            return False
+        if not np.array_equal(self.res_name, item.res_name):
+            return False
+        if not np.array_equal(self.atom_name, item.atom_name):
+            return False
+        if not np.array_equal(self.hetero, item.hetero):
+            return False
+        return True
+    
+    def __ne__(self, item):
+        return not self.__eq__(item)
+    
 
 class Atom(object):
     
@@ -143,17 +161,9 @@ class AtomArray(_AtomPropertyList):
         return self._length
     
     def __eq__(self, item):
+        if not super().__eq__(item):
+            return False
         if not isinstance(item, AtomArray):
-            return False
-        if not np.array_equal(self.chain_id, item.chain_id):
-            return False
-        if not np.array_equal(self.res_id, item.res_id):
-            return False
-        if not np.array_equal(self.res_name, item.res_name):
-            return False
-        if not np.array_equal(self.atom_name, item.atom_name):
-            return False
-        if not np.array_equal(self.hetero, item.hetero):
             return False
         if not np.array_equal(self.pos, item.pos):
             return False
@@ -243,3 +253,22 @@ def _get_model_length(model: Bio.PDB.Model.Model, insertion_code: str=""):
 
 def _get_insertion_code(residue: Bio.PDB.Residue.Residue):
     return residue.id[2].strip()
+
+def ensure_structure_type(item, allow_single=True, allow_array=True, allow_stack=True):
+    if isinstance(item, Atom):
+        if allow_single:
+            return "single"
+        else:
+            raise ValueError("Object cannot be a single atom")
+    elif isinstance(item, AtomArray):
+        if allow_array:
+            return "array"
+        else:
+            raise ValueError("Object cannot be an atom array")
+    elif isinstance(item, AtomArrayStack):
+        if allow_stack:
+            return "stack"
+        else:
+            raise ValueError("Object cannot be a atom array stack")
+    else:
+        raise ValueError("Object is not a structure type")
