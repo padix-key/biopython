@@ -4,7 +4,7 @@
 # as part of this package.
 
 import numpy as np
-from . import get_centroid
+from . import centroid
 from . import Atom, AtomArray, AtomArrayStack
 
 def superimpose(reference, subject, ca_only=True):
@@ -12,8 +12,8 @@ def superimpose(reference, subject, ca_only=True):
         raise ValueError("Reference must be AtomArray")
     
     if type(subject) == AtomArray:
-        sub_centroid = get_centroid(subject)
-        ref_centroid = get_centroid(reference)
+        sub_centroid = centroid(subject)
+        ref_centroid = centroid(reference)
         if ca_only:
             # For performance reasons the Kabsch algorithm
             # is only performed with "CA"

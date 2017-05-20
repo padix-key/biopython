@@ -12,11 +12,11 @@ def rmsd(reference, subject):
     
     dif = subject.pos - reference.pos
     product = dif * dif
+    sq_euclidian = product[...,0] + product[...,1] + product[...,2]
     if type(subject) == AtomArray:
-        sq_euclidian = product[:,0] + product[:,1] + product[:,2]
         return np.sqrt(np.mean(sq_euclidian))
     elif type(subject) == AtomArrayStack:
-        sq_euclidian = product[:,:,0] + product[:,:,1] + product[:,:,2]
         # TODO
+        pass
     else:
         raise ValueError("Subject must be AtomArray or AtomArrayStack")

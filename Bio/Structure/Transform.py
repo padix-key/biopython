@@ -4,7 +4,7 @@
 # as part of this package.
 
 import numpy as np
-from . import get_centroid
+from . import centroid
 
 def translate(atoms, vector):
         if len(vector) != 3:
@@ -39,8 +39,8 @@ def rotate(atoms, angles):
 
 def rotate_centered(atoms, angles):
     transformed = atoms.copy()
-    centroid = get_centroid(transformed)
-    transformed.pos -= centroid
+    centro = centroid(transformed)
+    transformed.pos -= centro
     transformed = rotate(transformed, angles)
-    transformed.pos += centroid
+    transformed.pos += centro
     return transformed

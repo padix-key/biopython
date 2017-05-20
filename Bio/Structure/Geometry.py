@@ -6,16 +6,17 @@
 import numpy as np
 from . import Atom, AtomArray, AtomArrayStack
 
-def bond_length(atoms):
-    dif = np.diff(atoms.pos, axis=0)
+def distance(atoms1, atoms2):
+    dif = atoms2.pos - atoms1.pos
     product = dif * dif
-    dist = np.sqrt(product[:,0] + product[:,1] + product[:,2])
+    dist = np.sqrt(product[...,0] + product[...,1] + product[...,2])
     return dist
 
-def get_centroid(atoms):
+def centroid(atoms):
     if type(atoms) == Atom:
         return atoms.pos
     if type(atoms) == AtomArray:
         return np.mean(atoms.pos, axis=0)
     if type(atoms) == AtomArrayStack:
         return np.mean(atoms.pos, axis=1)
+    
