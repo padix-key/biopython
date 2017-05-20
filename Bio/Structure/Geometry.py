@@ -4,7 +4,7 @@
 # as part of this package.
 
 import numpy as np
-from .. import *
+from . import Atom, AtomArray, AtomArrayStack
 
 def bond_length(atoms):
     dif = np.diff(atoms.pos, axis=0)
@@ -13,10 +13,9 @@ def bond_length(atoms):
     return dist
 
 def get_centroid(atoms):
-    struc_type = ensure_structure_type(atoms)
-    if struc_type == "single":
+    if type(atoms) == Atom:
         return atoms.pos
-    if struc_type == "array":
+    if type(atoms) == AtomArray:
         return np.mean(atoms.pos, axis=0)
-    if struc_type == "stack":
+    if type(atoms) == AtomArrayStack:
         return np.mean(atoms.pos, axis=1)

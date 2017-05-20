@@ -4,18 +4,19 @@
 # as part of this package.
 
 import numpy as np
-from .. import *
+from . import Atom, AtomArray, AtomArrayStack
 
 def rmsd(reference, subject):
-    if not isinstance(reference, AtomArray):
+    if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
-    struc_type = ensure_structure_type(subject, allow_single=False)
     
     dif = subject.pos - reference.pos
     product = dif * dif
-    if struc_type == "array":
+    if type(subject) == AtomArray:
         sq_euclidian = product[:,0] + product[:,1] + product[:,2]
         return np.sqrt(np.mean(sq_euclidian))
-    else:
+    elif type(subject) == AtomArrayStack:
         sq_euclidian = product[:,:,0] + product[:,:,1] + product[:,:,2]
         # TODO
+    else:
+        raise ValueError("Subject must be AtomArray or AtomArrayStack")

@@ -3,13 +3,13 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from .. import AtomArray
+from . import AtomArray
 
 class SimpleViewer(object):
     
     def __init__(self):
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
         self._fig = plt.figure()
         self._ax = self._fig.gca(projection='3d')
         self._ax.axis("off")
@@ -26,4 +26,5 @@ class SimpleViewer(object):
                       color=color)
         
     def show(self):
+        import matplotlib.pyplot as plt
         plt.show()

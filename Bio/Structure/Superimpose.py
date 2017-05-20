@@ -4,18 +4,17 @@
 # as part of this package.
 
 import numpy as np
-from .. import *
-from ..Measure import rmsd, get_centroid
+from . import get_centroid
+from . import Atom, AtomArray, AtomArrayStack
 
-def superimpose(reference, subject, fast=True):
-    if not isinstance(reference, AtomArray):
+def superimpose(reference, subject, ca_only=True):
+    if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
-    struc_type = ensure_structure_type(subject, allow_single=False)
     
-    if struc_type == "array":
+    if type(subject) == AtomArray:
         sub_centroid = get_centroid(subject)
         ref_centroid = get_centroid(reference)
-        if fast:
+        if ca_only:
             # For performance reasons the Kabsch algorithm
             # is only performed with "CA"
             # Implicitly this creates array copies
@@ -38,7 +37,7 @@ def superimpose(reference, subject, fast=True):
             v[:,-1] *= -1
         rotation = np.dot(v,w)
         
-        if fast:
+        if ca_only:
             fitted_subject = subject.copy()
             fitted_subject.pos -= sub_centroid
         else:
@@ -46,8 +45,18 @@ def superimpose(reference, subject, fast=True):
         fitted_subject.pos = np.dot(fitted_subject.pos, rotation)
         fitted_subject.pos += ref_centroid
         
-        return fitted_subject, rotation, ref_centroid, sub_centroid
+        return fitted_subject, (sub_centroid,rotation,ref_centroid)
     
-    else:
+    elif type(subject) == AtomArray:
         pass
         # TODO
+        
+    else:
+        raise ValueError("Subject must be AtomArray or AtomArrayStack")
+
+
+def apply_superimposition(atoms, transformation):
+    transformed = atoms.copy()
+    transformed.pos -= transformation[0]
+    transformed.pos = np.dot(transformed.pos, transformation[1])
+    transformed.pos += transformation[2]

@@ -4,9 +4,7 @@
 # as part of this package.
 
 import numpy as np
-from numpy import sin, cos
-from ..Measure import get_centroid
-from .. import *
+from . import get_centroid
 
 def translate(atoms, vector):
         if len(vector) != 3:
@@ -16,6 +14,8 @@ def translate(atoms, vector):
         return transformed
 
 def rotate(atoms, angles):
+    from numpy import sin, cos
+    
     if len(angles) != 3:
         raise ValueError("Translation vector must be container of length 3")
     
