@@ -5,8 +5,8 @@
 
 from .Atoms import *
 
-from .Compare import *
 from .Geometry import *
+from .Compare import *
 
 from .Transform import *
 from .Superimpose import *

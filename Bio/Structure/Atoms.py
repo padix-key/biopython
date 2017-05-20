@@ -18,6 +18,9 @@ class _AtomPropertyList(object):
         self.hetero = np.zeros(length, dtype="U3")
         self._length = length
         
+    def seq_length(self, chain_id: str):
+        return np.max(self.res_id[self.chain_id == chain_id])
+        
     def check_integrity(self):
         if self.chain_id.shape != (self._length,):
             return False
@@ -248,3 +251,10 @@ def _get_model_length(model: Bio.PDB.Model.Model, insertion_code: str=""):
 
 def _get_insertion_code(residue: Bio.PDB.Residue.Residue):
     return residue.id[2].strip()
+
+
+def position(item):
+    if type(item) in (Atom, AtomArray, AtomArrayStack):
+        return item.pos
+    else:
+        return np.array(item) 

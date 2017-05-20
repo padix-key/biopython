@@ -5,14 +5,14 @@
 
 import numpy as np
 from . import Atom, AtomArray, AtomArrayStack
+from . import vector_dot
 
 def rmsd(reference, subject):
     if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
     
     dif = subject.pos - reference.pos
-    product = dif * dif
-    sq_euclidian = product[...,0] + product[...,1] + product[...,2]
+    sq_euclidian = vector_dot(dif, dif)
     if type(subject) == AtomArray:
         return np.sqrt(np.mean(sq_euclidian))
     elif type(subject) == AtomArrayStack:
