@@ -18,8 +18,21 @@ class _AtomPropertyList(object):
         self.hetero = np.zeros(length, dtype="U3")
         self._length = length
         
-    def seq_length(self, chain_id: str):
-        return np.max(self.res_id[self.chain_id == chain_id])
+    def seq_length(self, chain_id: str="all"):
+        if chain_id != "all":
+            res_id_by_chain = self.res_id[self.chain_id == chain_id]
+        else:
+            res_id_by_chain = self.res_id
+        last_found_id = -1
+        id_count = 0
+        i = 0
+        while i < len(res_id_by_chain):
+            found_id = res_id_by_chain[i]
+            if last_found_id != found_id:
+                last_found_id = found_id
+                id_count += 1
+            i += 1
+        return id_count
         
     def check_integrity(self):
         if self.chain_id.shape != (self._length,):
@@ -217,7 +230,7 @@ class AtomArrayStack(_AtomPropertyList):
 
 
 def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
-    arr = AtomArray(_get_model_length(model))
+    arr = AtomArray(_get_model_size(model))
     i = 0
     for chain in model:
         for residue in chain:
@@ -235,18 +248,44 @@ def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
 
 
 def to_model(array: AtomArray):
-    pass
+    model = Bio.PDB.Model.Model(0)
+    for i in range(len(array)):
+        chain_id = array.chain_id[i]
+        hetero = array.hetero[i]
+        res_id = array.res_id[i]
+        res_name = array.res_name[i]
+        atom_name = array.atom_name[i]
+        pos = array.pos[i]
+        try:
+            chain_curr = model[chain_id]
+        except KeyError:
+            chain_curr = Bio.PDB.Chain.Chain(chain_id)
+            model.add(chain_curr)
+        try:
+            res_curr = chain_curr[(hetero, res_id, " ")]
+        except KeyError:
+            res_curr = Bio.PDB.Residue.Residue(
+                (hetero, res_id, " "), res_name, " ")
+            chain_curr.add(res_curr)
+        try:
+            atom_curr = res_curr[atom_name]
+        except KeyError:
+            atom_curr = Bio.PDB.Atom.Atom(atom_name, pos, 0, 1, " ",
+                                          atom_name, i+1, atom_name[0])
+            res_curr.add(atom_curr)
+        i += 1
+    return model
 
 
-def _get_model_length(model: Bio.PDB.Model.Model, insertion_code: str=""):
-    length = 0
+def _get_model_size(model: Bio.PDB.Model.Model, insertion_code: str=""):
+    size = 0
     for chain in model:
         for residue in chain:
             insertion = _get_insertion_code(residue)
             if insertion == insertion_code:
                 for atom in residue:
-                    length += 1
-    return length
+                    size += 1
+    return size
 
 
 def _get_insertion_code(residue: Bio.PDB.Residue.Residue):
@@ -257,4 +296,4 @@ def position(item):
     if type(item) in (Atom, AtomArray, AtomArrayStack):
         return item.pos
     else:
-        return np.array(item) 
+        return np.array(item)

@@ -4,6 +4,8 @@
 """
 
 from .Atoms import *
+from .Util import *
+from .Error import *
 
 from .Geometry import *
 from .Compare import *
