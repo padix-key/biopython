@@ -5,12 +5,27 @@
 
 import numpy as np
 from . import centroid
-from . import Atom, AtomArray, AtomArrayStack
+from . import Atom, AtomArray, AtomArrayStack, stack
 
 def superimpose(reference, subject, ca_only=True):
     if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
-    
+    if type(subject) == AtomArray:
+        return _superimpose(reference, subject, ca_only)
+    elif type(subject) == AtomArrayStack:
+        fitted_subjects = []
+        transformations = []
+        for array in subject:
+            fitted_subject, transformation = _superimpose(reference, array, ca_only)
+            fitted_subjects.append(fitted_subject)
+            transformations.append(transformation)
+        fitted_subjects = stack(fitted_subjects)
+        return (fitted_subjects, transformations)
+    else:
+        raise ValueError("Reference must be AtomArray")
+
+
+def _superimpose(reference, subject, ca_only):
     if type(subject) == AtomArray:
         sub_centroid = centroid(subject)
         ref_centroid = centroid(reference)
@@ -50,13 +65,6 @@ def superimpose(reference, subject, ca_only=True):
         fitted_subject.pos += ref_centroid
         
         return fitted_subject, (sub_centroid,rotation,ref_centroid)
-    
-    elif type(subject) == AtomArray:
-        pass
-        # TODO
-        
-    else:
-        raise ValueError("Subject must be AtomArray or AtomArrayStack")
 
 
 def apply_superimposition(atoms, transformation):
