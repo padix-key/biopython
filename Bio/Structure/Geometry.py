@@ -57,7 +57,7 @@ def dihedral_backbone(atom_array, chain_id):
                                (atom_array.atom_name == "C")) &
                                (atom_array.hetero == " ") &
                                (atom_array.chain_id == chain_id)]
-        angle_atoms = np.zeros(( (backbone.seq_length(chain_id)-1)*3, 4, 3 ))
+        angle_atoms = np.zeros(( len(backbone)-3, 4, 3 ))
         for i in range(len(angle_atoms)):
             angle_atoms[i] = backbone.pos[0+i : 4+i]
         dihed = dihedral(angle_atoms[:,0], angle_atoms[:,1],

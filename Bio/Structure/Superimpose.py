@@ -23,6 +23,10 @@ def superimpose(reference, subject, ca_only=True):
         else:
             sub_centered = subject.copy();
             ref_centered = reference.copy();
+            
+        if len(sub_centered) != len(ref_centered):
+            raise BadStructureException("The subject and reference array have different amount of atoms")
+        
         sub_centered.pos -= sub_centroid
         ref_centered.pos -= ref_centroid
         

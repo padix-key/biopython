@@ -13,4 +13,4 @@ from .Compare import *
 from .Transform import *
 from .Superimpose import *
 
-from .SimpleViewer import *
+from .Vis import *

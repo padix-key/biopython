@@ -6,7 +6,7 @@
 import numpy as np
 import Bio.PDB
 
-class _AtomPropertyList(object):
+class _AtomAnnotationList(object):
     
     def __init__(self, length: int=None):
         if length == None:
@@ -48,7 +48,7 @@ class _AtomPropertyList(object):
         return True
     
     def __eq__(self, item):
-        if not isinstance(item, _AtomPropertyList):
+        if not isinstance(item, _AtomAnnotationList):
             return False
         if not np.array_equal(self.chain_id, item.chain_id):
             return False
@@ -86,7 +86,7 @@ class Atom(object):
                 self.hetero + "\t" + str(self.pos))
 
     
-class AtomArray(_AtomPropertyList):
+class AtomArray(_AtomAnnotationList):
     
     def __init__(self, length: int=None):
         if length == None:
@@ -130,20 +130,21 @@ class AtomArray(_AtomPropertyList):
             i += 1
     
     def __getitem__(self, index):
-        if isinstance(index, int):
-            return self.get_atom(index)
-        else:
-            new_array = AtomArray()
-            new_array.chain_id = self.chain_id.__getitem__(index)
-            new_array.res_id = self.res_id.__getitem__(index)
-            new_array.res_name = self.res_name.__getitem__(index)
-            new_array.atom_name = self.atom_name.__getitem__(index)
-            new_array.hetero = self.hetero.__getitem__(index)
-            new_array.pos = self.pos.__getitem__(index)
-            new_array._length = len(new_array.pos)
-            if not new_array.check_integrity():
-                raise IndexError("Index created invalid AtomArray")
-            return new_array
+        try:
+            if isinstance(index, int):
+                return self.get_atom(index)
+            else:
+                new_array = AtomArray()
+                new_array.chain_id = self.chain_id.__getitem__(index)
+                new_array.res_id = self.res_id.__getitem__(index)
+                new_array.res_name = self.res_name.__getitem__(index)
+                new_array.atom_name = self.atom_name.__getitem__(index)
+                new_array.hetero = self.hetero.__getitem__(index)
+                new_array.pos = self.pos.__getitem__(index)
+                new_array._length = len(new_array.pos)
+                return new_array
+        except:
+            raise IndexError("Invalid index") from None
         
     def __setitem__(self, index: int, atom: Atom):
         if isinstance(index, int):
@@ -190,7 +191,7 @@ class AtomArray(_AtomPropertyList):
         return string
 
 
-class AtomArrayStack(_AtomPropertyList):
+class AtomArrayStack(_AtomAnnotationList):
     
     def __init__(self, depth: int, length: int):
         super().__init__(length)
@@ -205,8 +206,15 @@ class AtomArrayStack(_AtomPropertyList):
         return True
     
     def get_array(self, index):
-        pass
-    
+        array = AtomArray(self._length)
+        array.chain_id = self.chain_id
+        array.res_id = self.res_id
+        array.res_name = self.res_name
+        array.atom_name = self.atom_name
+        array.hetero = self.hetero
+        array.pos = self.pos[index]
+        return array
+
     def __iter__(self):
         i = 0
         while i < self._depth:
@@ -214,20 +222,83 @@ class AtomArrayStack(_AtomPropertyList):
             i += 1
             
     def __getitem__(self, index):
-        pass
+        try:
+            if isinstance(index, int):
+                return self.get_array(index)
+            elif isinstance(index, tuple):
+                new_stack = AtomArrayStack()
+                new_stack.chain_id = self.chain_id.__getitem__(index[1:])
+                new_stack.res_id = self.res_id.__getitem__(index[1:])
+                new_stack.res_name = self.res_name.__getitem__(index[1:])
+                new_stack.atom_name = self.atom_name.__getitem__(index[1:])
+                new_stack.hetero = self.hetero.__getitem__(index[1:])
+                new_stack.pos = self.pos.__getitem__(index)
+                new_stack._length = len(new_array.pos)
+                return new_stack
+            else:
+                new_stack = AtomArrayStack()
+                new_stack.chain_id = self.chain_id.__getitem__(index)
+                new_stack.res_id = self.res_id.__getitem__(index)
+                new_stack.res_name = self.res_name.__getitem__(index)
+                new_stack.atom_name = self.atom_name.__getitem__(index)
+                new_stack.hetero = self.hetero.__getitem__(index)
+                new_stack.pos = self.pos.__getitem__(index)
+                new_stack._length = len(new_array.pos)
+                return new_stack
+        except:
+            raise IndexError("Invalid index") from None
+            
+    
+    def __setitem__(self, index: int, array: AtomArray):
+        if not super(AtomArray, array).__eq__(array):
+            raise ValueError("The array's atom annotations do not fit")
+        if isinstance(index, int):
+            self.pos[index] = array.pos
+        else:
+            raise IndexError("Index must be integer")
+        
+    def __delitem__(self, index: int):
+        if isinstance(index, int):
+            self.pos = np.delete(self.pos, index, axis=0)
+            self.depth -= 1
+        else:
+            raise IndexError("Index must be integer")
     
     def __len__(self):
         return self._depth
     
     def __eq__(self, item):
-        pass
+        if not super().__eq__(item):
+            return False
+        if not isinstance(item, AtomArrayStack):
+            return False
+        if not np.array_equal(self.pos, item.pos):
+            return False
+        return True
     
     def __ne__(self, item):
         return not self.__eq__(item)
     
     def __str__(self):
-        pass
+        string = ""
+        for array in self:
+            string += str(array) + "\n" + "\n"
+        return string
 
+
+def stack(arrays):
+    for array in arrays:
+        if not super(AtomArray, array).__eq__(arrays[0]):
+            raise ValueError("The arrays atom annotations do not fit to each other")
+    array_stack = AtomArrayStack(len(arrays), len(arrays[0])) 
+    array_stack.chain_id = arrays[0].chain_id
+    array_stack.res_id = arrays[0].res_id
+    array_stack.res_name = arrays[0].res_name
+    array_stack.atom_name = arrays[0].atom_name
+    array_stack.hetero = arrays[0].hetero
+    pos_list = [array.pos for array in arrays] 
+    array_stack.pos = np.stack(pos_list, axis=0)
+    return array_stack
 
 def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
     arr = AtomArray(_get_model_size(model))
