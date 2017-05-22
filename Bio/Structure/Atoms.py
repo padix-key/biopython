@@ -16,7 +16,6 @@ class _AtomAnnotationList(object):
         self.res_name = np.zeros(length, dtype="U3")
         self.atom_name = np.zeros(length, dtype="U4")
         self.hetero = np.zeros(length, dtype="U3")
-        self._length = length
         
     def seq_length(self, chain_id: str="all"):
         if chain_id != "all":
@@ -35,15 +34,15 @@ class _AtomAnnotationList(object):
         return id_count
         
     def check_integrity(self):
-        if self.chain_id.shape != (self._length,):
+        if self.chain_id.shape != (len(self),):
             return False
-        if self.res_id.shape != (self._length,):
+        if self.res_id.shape != (len(self)):
             return False
-        if self.res_name.shape != (self._length,):
+        if self.res_name.shape != (len(self)):
             return False
-        if self.atom_name.shape != (self._length,):
+        if self.atom_name.shape != (len(self)):
             return False
-        if self.hetero.shape != (self._length,):
+        if self.hetero.shape != (len(self)):
             return False
         return True
     
@@ -64,6 +63,9 @@ class _AtomAnnotationList(object):
     
     def __ne__(self, item):
         return not self.__eq__(item)
+    
+    def __len__(self):
+        return self.chain_id.shape[0]
     
 
 class Atom(object):
@@ -102,7 +104,6 @@ class AtomArray(_AtomAnnotationList):
         new_array.atom_name = np.copy(self.atom_name)
         new_array.hetero = np.copy(self.hetero)
         new_array.pos = np.copy(self.pos)
-        new_array._length = self._length
         return new_array
         
     def sort(self):
@@ -111,7 +112,7 @@ class AtomArray(_AtomAnnotationList):
     def check_integrity(self):
         if not super().check_integrity():
             return False
-        if self.pos.shape != (self._length, 3):
+        if self.pos.shape != (len(self), 3):
             return False
         return True
     
@@ -125,7 +126,7 @@ class AtomArray(_AtomAnnotationList):
     
     def __iter__(self):
         i = 0
-        while i < self._length:
+        while i < len(self):
             yield self.get_atom(i)
             i += 1
     
@@ -141,7 +142,6 @@ class AtomArray(_AtomAnnotationList):
                 new_array.atom_name = self.atom_name.__getitem__(index)
                 new_array.hetero = self.hetero.__getitem__(index)
                 new_array.pos = self.pos.__getitem__(index)
-                new_array._length = len(new_array.pos)
                 return new_array
         except:
             raise IndexError("Invalid index") from None
@@ -165,12 +165,11 @@ class AtomArray(_AtomAnnotationList):
             self.atom_name = np.delete(self.atom_name, index, axis=0)
             self.hetero = np.delete(self.hetero, index, axis=0)
             self.pos = np.delete(self.pos, index, axis=0)
-            self._length -= 1
         else:
             raise IndexError("Index must be integer")
         
     def __len__(self):
-        return self._length
+        return self.pos.shape[0]
     
     def __eq__(self, item):
         if not super().__eq__(item):
@@ -193,20 +192,21 @@ class AtomArray(_AtomAnnotationList):
 
 class AtomArrayStack(_AtomAnnotationList):
     
-    def __init__(self, depth: int, length: int):
+    def __init__(self, depth: int=None, length: int=None):
+        if depth == None or length == None:
+            return
         super().__init__(length)
-        self._depth = depth
         self.pos = np.zeros((depth, length, 3), dtype=float)
     
     def check_integrity(self):
         if not super().check_integrity():
             return False
-        if self.pos.shape != (self._depth, self._length, 3):
+        if self.pos.shape != (len(self), super().__len__(), 3):
             return False
         return True
     
     def get_array(self, index):
-        array = AtomArray(self._length)
+        array = AtomArray()
         array.chain_id = self.chain_id
         array.res_id = self.res_id
         array.res_name = self.res_name
@@ -217,7 +217,7 @@ class AtomArrayStack(_AtomAnnotationList):
 
     def __iter__(self):
         i = 0
-        while i < self._depth:
+        while i < len(self):
             yield self.get_array(i)
             i += 1
             
@@ -233,7 +233,6 @@ class AtomArrayStack(_AtomAnnotationList):
                 new_stack.atom_name = self.atom_name.__getitem__(index[1:])
                 new_stack.hetero = self.hetero.__getitem__(index[1:])
                 new_stack.pos = self.pos.__getitem__(index)
-                new_stack._length = len(new_array.pos)
                 return new_stack
             else:
                 new_stack = AtomArrayStack()
@@ -243,10 +242,9 @@ class AtomArrayStack(_AtomAnnotationList):
                 new_stack.atom_name = self.atom_name.__getitem__(index)
                 new_stack.hetero = self.hetero.__getitem__(index)
                 new_stack.pos = self.pos.__getitem__(index)
-                new_stack._length = len(new_array.pos)
                 return new_stack
         except:
-            raise IndexError("Invalid index") from None
+            raise IndexError("Invalid index")
             
     
     def __setitem__(self, index: int, array: AtomArray):
@@ -260,12 +258,11 @@ class AtomArrayStack(_AtomAnnotationList):
     def __delitem__(self, index: int):
         if isinstance(index, int):
             self.pos = np.delete(self.pos, index, axis=0)
-            self.depth -= 1
         else:
             raise IndexError("Index must be integer")
     
     def __len__(self):
-        return self._depth
+        return self.pos.shape[0]
     
     def __eq__(self, item):
         if not super().__eq__(item):
@@ -281,7 +278,8 @@ class AtomArrayStack(_AtomAnnotationList):
     
     def __str__(self):
         string = ""
-        for array in self:
+        for i, array in enumerate(self):
+            string += "Model: " + str(i) + "\n"
             string += str(array) + "\n" + "\n"
         return string
 
@@ -289,8 +287,8 @@ class AtomArrayStack(_AtomAnnotationList):
 def stack(arrays):
     for array in arrays:
         if not super(AtomArray, array).__eq__(arrays[0]):
-            raise ValueError("The arrays atom annotations do not fit to each other")
-    array_stack = AtomArrayStack(len(arrays), len(arrays[0])) 
+            raise ValueError("The arrays atom annotations do not fit to each other") 
+    array_stack = AtomArrayStack()
     array_stack.chain_id = arrays[0].chain_id
     array_stack.res_id = arrays[0].res_id
     array_stack.res_name = arrays[0].res_name
