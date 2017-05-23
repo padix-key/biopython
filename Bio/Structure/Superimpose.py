@@ -3,11 +3,63 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
+"""
+This module provides functions for structure superimposition.
+"""
+
 import numpy as np
 from . import centroid
 from . import Atom, AtomArray, AtomArrayStack, stack
 
 def superimpose(reference, subject, ca_only=True):
+    """
+    Superimpose structures on a reference structure.
+    
+    The superimposition is performed using the Kabsch algorithm.
+    
+    Parameters
+    ----------
+    reference : AtomArray
+        The reference structure.
+    subject: AtomArray or AtomArrayStack
+        The structure(s) which is/are superimposed on the `reference`
+        structure. Both, `reference` and `subject` should have equal
+        annotation arrays and must have equal sizes.
+    ca_only: boolean, optional
+        If True, the function performs the superimpostion
+        considering only the "CA" atoms. This increases the
+        performance drastically but decreases the accuracy slightly.
+    
+    Returns
+    -------
+    fitted : AtomArray or AtomArrayStack
+        A copy of the `subject` structure(s),
+        superimposed on the reference structure.
+    transformation : tuple or tuple list
+        The tuple contains the transformations that were applied on `subject`.
+        This can be used in `apply_superimposition()` in order to transform
+        another AtomArray in the same way.
+        The first element contains the translation vector for moving the
+        centroid into the origin.
+        The second element contains the rotation matrix.
+        The third element contains the translation vector for moving the
+        structure onto the reference.
+        The three transformations are performed sequentially.
+    
+    See Also
+    --------
+    apply_superimposition
+    
+    Notes
+    -----
+    The `transformation` tuple can be used in `apply_superimposition()` in
+    order to transform another `AtomArray` in the same way. This can come in
+    handy, in case you want to superimpose two structures with different
+    amount of atoms. Often the two structures can be sliced in order to
+    obtain the same size and annotation arrays. After superimposition the
+    transformation can be applied on the original structure using
+    `apply_superimposition()`.
+    """
     if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
     if type(subject) == AtomArray:
@@ -29,6 +81,13 @@ def superimpose(reference, subject, ca_only=True):
 
 
 def _superimpose(reference, subject, ca_only):
+    """
+    Performs the actual superimposition.
+    
+    See Also
+    --------
+    superimpose
+    """
     if type(subject) == AtomArray:
         sub_centroid = centroid(subject)
         ref_centroid = centroid(reference)
@@ -70,11 +129,33 @@ def _superimpose(reference, subject, ca_only):
             fitted_subject = sub_centered
         fitted_subject.pos = np.dot(fitted_subject.pos, rotation)
         fitted_subject.pos += ref_centroid
-        return fitted_subject, (sub_centroid,rotation,ref_centroid)
+        return fitted_subject, (-sub_centroid,rotation,ref_centroid)
 
 
 def apply_superimposition(atoms, transformation):
+    """
+    Superimpose structures using a given transformation tuple.
+    
+    The transformation tuple is obtained by prior superimposition.
+    
+    Parameters
+    ----------
+    atoms : AtomArray
+        The structure to apply the transformation on.
+    transformation: tuple, size=3
+        The transfomration tuple, obtained by `superimpose()`.
+    
+    Returns
+    -------
+    fitted : AtomArray or AtomArrayStack
+        A copy of the `atoms` structure,
+        with transformations applied.
+    
+    See Also
+    --------
+    superimpose
+    """
     transformed = atoms.copy()
-    transformed.pos -= transformation[0]
+    transformed.pos += transformation[0]
     transformed.pos = np.dot(transformed.pos, transformation[1])
     transformed.pos += transformation[2]

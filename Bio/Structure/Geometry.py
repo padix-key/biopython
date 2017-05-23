@@ -3,6 +3,11 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
+"""
+This module provides functions for geometric measurements between atoms
+in a structure, mainly lenghts and angles.
+"""
+
 import numpy as np
 from . import Atom, AtomArray, AtomArrayStack
 from . import position
@@ -10,9 +15,25 @@ from . import vector_dot, norm_vector
 from . import BadStructureError
 
 def distance(atoms1, atoms2):
+    """
+    Measures the euclidian distance between atoms.
+    
+    Parameters
+    ----------
+    atoms1, atoms2 : ndarray or Atom or AtomArray or AtomArrayStack
+        The atoms to measure the distances between. The dimensions may vary.
+        Alternatively an ndarray containing the position(s) can be provided.
+    
+    Returns
+    -------
+    dist : float or ndarray
+        The atom distances. The shape is equal to the shape of
+        the input `atoms` with the highest dimensionality minus the last axis.
+    """
     v1 = position(atoms1)
     v2 = position(atoms2)
-    
+    # decide subtraction order based on shape,
+    # since an array can be only subtracted by an array with less dimensions
     if len(v1.shape) <= len(v2.shape):
         dif = v2 - v1
     else:
@@ -22,10 +43,40 @@ def distance(atoms1, atoms2):
 
 
 def centroid(atoms):
+    """
+    Measures the centroid of a structure.
+    
+    Parameters
+    ----------
+    atoms: ndarray orAtomArray or AtomArrayStack
+        The structures to determine the centroid from.
+        Alternatively an ndarray containing the position(s) can be provided.
+    
+    Returns
+    -------
+    centroid : float or ndarray
+        The centroid of the structure(s). The shape is equal to the shape of
+        the input `atoms` with the highest dimensionality minus the second last axis.
+    """
     return np.mean(position(atoms), axis=-2)
 
 
 def angle(atom1, atom2, atom3):
+    """
+    Measures the angle between 3 atoms.
+    
+    Parameters
+    ----------
+    atoms1, atoms2, atoms3 : ndarray or Atom or AtomArray or AtomArrayStack
+        The atoms to measure the angle between.
+        Alternatively an ndarray containing the position(s) can be provided.
+    
+    Returns
+    -------
+    angle : float or ndarray
+        The angle(s) between the atoms. The shape is equal to the shape of
+        the input `atoms` with the highest dimensionality minus the last axis.
+    """
     v1 = position(atom2) - position(atom1)
     v2 = position(atom3) - position(atom2)
     norm_vector(v1)
@@ -34,6 +85,25 @@ def angle(atom1, atom2, atom3):
 
 
 def dihedral(atom1, atom2, atom3, atom4):
+    """
+    Measures the dihedral angle between 4 atoms.
+    
+    Parameters
+    ----------
+    atoms1, atoms2, atoms3, atom4 : ndarray or Atom or AtomArray or AtomArrayStack
+        The atoms to measure the dihedral angle between.
+        Alternatively an ndarray containing the position(s) can be provided.
+    
+    Returns
+    -------
+    dihed : float or ndarray
+        The dihedral angle(s) between the atoms. The shape is equal to the shape of
+        the input `atoms` with the highest dimensionality minus the last axis.
+    
+    See Also
+    --------
+    dihedral_backbone
+    """
     v1 = position(atom2) - position(atom1)
     v2 = position(atom3) - position(atom2)
     v3 = position(atom4) - position(atom3)
@@ -51,6 +121,38 @@ def dihedral(atom1, atom2, atom3, atom4):
 
 
 def dihedral_backbone(atom_array, chain_id):
+    """
+    Measures the characteristic backbone dihedral angles of a structure.
+    
+    Parameters
+    ----------
+    atom_array: AtomArray
+        The protein structure.
+    chain_id: string
+        The ID of the polypeptide chain. The dihedral angles are calculated
+        for ``atom_array[atom_array.chain_id == chain_id]``
+    
+    Returns
+    -------
+    psi : 1-D ndarray
+        An array containing the *psi* dihedral angles. The index *n* represents
+        the section between CA(n+1) and CA(n+2). Therefore the length of this
+        array is the length of the AtomArray -1.
+    omega : 1-D ndarray
+        An array containing the *omega* dihedral angles. Indexing as above.
+    phi : 1-D ndarray
+        An array containing the *phi* dihedral angles. Indexing as above.
+    
+    Raises
+    ------
+    BadStructureError
+        If the amount of backbone atoms is not equal to amount of residues*3
+        (for N, CA and C).
+    
+    See Also
+    --------
+    dihedral
+    """
     try:
         backbone = atom_array[((atom_array.atom_name == "N") |
                                (atom_array.atom_name == "CA") |

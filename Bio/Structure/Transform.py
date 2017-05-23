@@ -3,17 +3,59 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
+"""
+This module provides different transformations#
+that can be applied on structures.
+"""
+
 import numpy as np
 from . import centroid
 
 def translate(atoms, vector):
-        if len(vector) != 3:
-            raise ValueError("Translation vector must be container of length 3")
-        transformed = atoms.copy()
-        transformed.pos += np.array(vector)
-        return transformed
+    """
+    Translate a list of atoms by a given vector.
+    
+    Parameters
+    ----------
+    atoms : Atom or AtomArray or AtomArrayStack
+        The atoms whose positions are altered.
+    vector: Iterable object, length=3
+        The translation vector :math:`(x, y, z)`.
+    
+    Returns
+    -------
+    transformed : Atom or AtomArray or AtomArrayStack
+        A copy of the input atoms, translated by the given vector.
+    """
+    if len(vector) != 3:
+        raise ValueError("Translation vector must be container of length 3")
+    transformed = atoms.copy()
+    transformed.pos += np.array(vector)
+    return transformed
 
 def rotate(atoms, angles):
+    """
+    Rotates a list of atoms by given angles.
+    
+    The rotations are centered at the origin and are performed sequentially
+    in the order x,y,z.
+    
+    Parameters
+    ----------
+    atoms : Atom or AtomArray or AtomArrayStack
+        The atoms whose positions are altered.
+    angles: Iterable object, length=3
+        The rotation angles :math:`(\\aplha_x, \\aplha_y, \\aplha_z)`.
+    
+    Returns
+    -------
+    transformed : Atom or AtomArray or AtomArrayStack
+        A copy of the input atoms, rotated by the given angles.
+        
+    See Also
+    --------
+    rotate_centered
+    """
     from numpy import sin, cos
     # Check if "angles" contains 3 angles for all dimensions
     if len(angles) != 3:
@@ -39,6 +81,28 @@ def rotate(atoms, angles):
     return transformed
 
 def rotate_centered(atoms, angles):
+    """
+    Rotates a list of atoms by given angles.
+    
+    The rotations are centered at the centroid of the corresponding structure
+    and are performed sequentially in the order x,y,z.
+    
+    Parameters
+    ----------
+    atoms : AtomArray or AtomArrayStack
+        The atoms whose positions are altered.
+    angles: Iterable object, length=3
+        the rotation angles :math:`(\\aplha_x, \\aplha_y, \\aplha_z)`
+    
+    Returns
+    -------
+    transformed : AtomArray or AtomArrayStack
+        A copy of the input atoms, rotated by the given angles.
+        
+    See Also
+    --------
+    rotate
+    """
     # Rotation around centroid requires translation of centroid to origin
     transformed = atoms.copy()
     centro = centroid(transformed)

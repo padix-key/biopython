@@ -47,7 +47,7 @@ class _AtomAnnotationList(object):
             return False
         return True
     
-    def __eq__(self, item):
+    def equal_annotations(self):
         if not isinstance(item, _AtomAnnotationList):
             return False
         if not np.array_equal(self.chain_id, item.chain_id):
@@ -61,6 +61,9 @@ class _AtomAnnotationList(object):
         if not np.array_equal(self.hetero, item.hetero):
             return False
         return True
+    
+    def __eq__(self, item):
+        return self.equal_annotations()
     
     def __ne__(self, item):
         return not self.__eq__(item)
@@ -359,6 +362,7 @@ def _get_model_size(model: Bio.PDB.Model.Model, insertion_code: str=""):
     size = 0
     for chain in model:
         for residue in chain:
+            # Only recognize atoms with given insertion code
             insertion = _get_insertion_code(residue)
             if insertion == insertion_code:
                 for atom in residue:
