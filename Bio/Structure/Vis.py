@@ -8,6 +8,7 @@ def simple_view(fig, atom_arrays):
     ax = fig.gca(projection='3d')
     ax.axis("off")
     ax.set_aspect("equal")
+    # Sets equal limits to all dimension, since set_aspect("equal") does not work properly
     ax.set_xlim(-10,10)
     ax.set_ylim(-10,10)
     ax.set_zlim(-10,10)

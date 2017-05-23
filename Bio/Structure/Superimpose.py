@@ -11,14 +11,17 @@ def superimpose(reference, subject, ca_only=True):
     if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
     if type(subject) == AtomArray:
+        # Simply superimpose without loop
         return _superimpose(reference, subject, ca_only)
     elif type(subject) == AtomArrayStack:
+        # Superimpose for every array in AtomArrayStack
         fitted_subjects = []
         transformations = []
         for array in subject:
             fitted_subject, transformation = _superimpose(reference, array, ca_only)
             fitted_subjects.append(fitted_subject)
             transformations.append(transformation)
+        # Convert AtomArray list back to AtomArrayStack
         fitted_subjects = stack(fitted_subjects)
         return (fitted_subjects, transformations)
     else:
@@ -31,7 +34,7 @@ def _superimpose(reference, subject, ca_only):
         ref_centroid = centroid(reference)
         if ca_only:
             # For performance reasons the Kabsch algorithm
-            # is only performed with "CA"
+            # is only performed with "CA" per default
             # Implicitly this creates array copies
             sub_centered = subject[(subject.atom_name == "CA")]
             ref_centered = reference[(reference.atom_name == "CA")]
@@ -48,22 +51,25 @@ def _superimpose(reference, subject, ca_only):
         # Calculating rotation matrix using Kabsch algorithm
         y = sub_centered.pos
         x = ref_centered.pos
+        # Calculate covariance matrix
         cov = np.dot(y.T, x)
         v, s, w = np.linalg.svd(cov)
         rotation = np.dot(w, v.T)
+        # Remove pssibility of reflected atom coordinates
         if np.linalg.det(v) * np.linalg.det(w) < 0:
             s[-1,:] *= -1
             v[:,-1] *= -1
         rotation = np.dot(v,w)
         
         if ca_only:
+            # Superimposed AtomArray should not be "CA" sequence
+            # therefore original subject is copied 
             fitted_subject = subject.copy()
             fitted_subject.pos -= sub_centroid
         else:
             fitted_subject = sub_centered
         fitted_subject.pos = np.dot(fitted_subject.pos, rotation)
         fitted_subject.pos += ref_centroid
-        
         return fitted_subject, (sub_centroid,rotation,ref_centroid)
 
 

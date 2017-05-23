@@ -22,6 +22,7 @@ class _AtomAnnotationList(object):
             res_id_by_chain = self.res_id[self.chain_id == chain_id]
         else:
             res_id_by_chain = self.res_id
+        # Count the number of times a new res_id is found
         last_found_id = -1
         id_count = 0
         i = 0
@@ -65,6 +66,7 @@ class _AtomAnnotationList(object):
         return not self.__eq__(item)
     
     def __len__(self):
+        # length is determined by length of chain_id attribute
         return self.chain_id.shape[0]
     
 
@@ -78,6 +80,7 @@ class Atom(object):
         self.atom_name = atom_name
         self.hetero = hetero
         pos = np.array(pos, dtype=float)
+        # Check if pos contains x,y and z coordinates
         if pos.shape != (3,):
             raise ValueError("Position must be ndarray with shape (3,)")
         self.pos = pos
@@ -105,9 +108,6 @@ class AtomArray(_AtomAnnotationList):
         new_array.hetero = np.copy(self.hetero)
         new_array.pos = np.copy(self.pos)
         return new_array
-        
-    def sort(self):
-        pass
         
     def check_integrity(self):
         if not super().check_integrity():
@@ -169,6 +169,7 @@ class AtomArray(_AtomAnnotationList):
             raise IndexError("Index must be integer")
         
     def __len__(self):
+        # length is determined by length of pos attribute
         return self.pos.shape[0]
     
     def __eq__(self, item):
@@ -262,6 +263,7 @@ class AtomArrayStack(_AtomAnnotationList):
             raise IndexError("Index must be integer")
     
     def __len__(self):
+        # length is determined by length of pos attribute
         return self.pos.shape[0]
     
     def __eq__(self, item):
@@ -286,6 +288,7 @@ class AtomArrayStack(_AtomAnnotationList):
 
 def stack(arrays):
     for array in arrays:
+        # Check if all arrays share equal annotations
         if not super(AtomArray, array).__eq__(arrays[0]):
             raise ValueError("The arrays atom annotations do not fit to each other") 
     array_stack = AtomArrayStack()
@@ -303,6 +306,7 @@ def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
     i = 0
     for chain in model:
         for residue in chain:
+            # Only recognize atoms with given insertion code
             insertion = _get_insertion_code(residue)
             if insertion == insertion_code:
                 for atom in residue:
@@ -318,31 +322,36 @@ def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
 
 def to_model(array: AtomArray):
     model = Bio.PDB.Model.Model(0)
+    # Iterate through all atoms
     for i in range(len(array)):
+        # Extract annotations and position of every atom
         chain_id = array.chain_id[i]
         hetero = array.hetero[i]
         res_id = array.res_id[i]
         res_name = array.res_name[i]
         atom_name = array.atom_name[i]
         pos = array.pos[i]
+        # Try to access the chain entity that corresponds to this atom
+        # if chain does not exist create chain and add it to super entity (model)
         try:
             chain_curr = model[chain_id]
         except KeyError:
             chain_curr = Bio.PDB.Chain.Chain(chain_id)
             model.add(chain_curr)
+        # Same as above with residues
         try:
             res_curr = chain_curr[(hetero, res_id, " ")]
         except KeyError:
             res_curr = Bio.PDB.Residue.Residue(
                 (hetero, res_id, " "), res_name, " ")
             chain_curr.add(res_curr)
+        # Same as above with atoms
         try:
             atom_curr = res_curr[atom_name]
         except KeyError:
             atom_curr = Bio.PDB.Atom.Atom(atom_name, pos, 0, 1, " ",
                                           atom_name, i+1, atom_name[0])
             res_curr.add(atom_curr)
-        i += 1
     return model
 
 

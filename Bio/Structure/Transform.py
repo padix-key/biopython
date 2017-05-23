@@ -15,10 +15,10 @@ def translate(atoms, vector):
 
 def rotate(atoms, angles):
     from numpy import sin, cos
-    
+    # Check if "angles" contains 3 angles for all dimensions
     if len(angles) != 3:
         raise ValueError("Translation vector must be container of length 3")
-    
+    # Create rotation matrices for all 3 dimensions
     rot_x = np.array([[ 1,               0,               0               ],
                       [ 0,               cos(angles[0]),  -sin(angles[0]) ],
                       [ 0,               sin(angles[0]),  cos(angles[0])  ]])
@@ -30,7 +30,8 @@ def rotate(atoms, angles):
     rot_z = np.array([[ cos(angles[2]),  -sin(angles[2]), 0               ],
                       [ sin(angles[2]),  cos(angles[2]),  0               ],
                       [ 0,               0,               1               ]])
-    
+    # Copy AtomArray(Stack) and apply rotations
+    # Note that the coordinates are treated as row vector
     transformed = atoms.copy()
     transformed.pos = np.dot(transformed.pos, rot_x)
     transformed.pos = np.dot(transformed.pos, rot_y)
@@ -38,6 +39,7 @@ def rotate(atoms, angles):
     return transformed
 
 def rotate_centered(atoms, angles):
+    # Rotation around centroid requires translation of centroid to origin
     transformed = atoms.copy()
     centro = centroid(transformed)
     transformed.pos -= centro
