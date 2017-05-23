@@ -17,7 +17,7 @@ def rmsf(reference: AtomArray, subject: AtomArrayStack):
     sq_euclidian = _sq_euclidian(reference, subject)
     return np.sqrt(np.mean(sq_euclidian, axis=0))
 
-def mean(atom_arrays: AtomArrayStack):
+def average(atom_arrays: AtomArrayStack):
     mean_array = atom_arrays[0].copy()
     mean_array.pos = np.mean(atom_arrays.pos, axis=0)
     return mean_array
