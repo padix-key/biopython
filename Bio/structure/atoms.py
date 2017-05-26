@@ -226,14 +226,14 @@ class Atom(object):
     chain_id : string {'A','B',...}
         A single character representing the polypeptide chain
     res_id : int
-        A integer value identifying the sequence position of the residue
+        Integer value identifying the sequence position of the residue
     res_name : string {'GLY','ALA',...}
-        A three character string representing the residue name
+        Three character string representing the residue name
     atom_name : string {' CA ',' N  ',...}
-        A four character string representing the atom name.
+        Four character string representing the atom name.
         Pay attention to the whitespaces
     hetero : string {' ','W','H_GLC',...}
-        An up to 5 character string, indicating in which hetero residue the
+        Up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
     """
     
@@ -277,14 +277,14 @@ class AtomArray(_AtomAnnotationList):
     chain_id : ndarray(dtype="U1") {'A','B',...}
         A single character representing the polypeptide chain
     res_id : ndarray(dtype=int)
-        A integer value identifying the sequence position of the residue
+        Integer value identifying the sequence position of the residue
     res_name : ndarray(dtype="U3") {'GLY','ALA',...}
-        A three character string representing the residue name
+        Three character string representing the residue name
     atom_name : ndarray(dtype="U4") {' CA ',' N  ',...}
-        A four character string representing the atom name.
+        Four character string representing the atom name.
         Pay attention to the whitespaces
     hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
-        An up to 5 character string, indicating in which hetero residue the
+        Up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
     coord : ndarray(dtype=float)
         (n x 3) ndarray containing the x, y and z coordinate of the atoms.
@@ -514,14 +514,14 @@ class AtomArrayStack(_AtomAnnotationList):
     chain_id : ndarray(dtype="U1") {'A','B',...}
         A single character representing the polypeptide chain
     res_id : ndarray(dtype=int)
-        A integer value identifying the sequence position of the residue
+        Integer value identifying the sequence position of the residue
     res_name : ndarray(dtype="U3") {'GLY','ALA',...}
-        A three character string representing the residue name
+        Three character string representing the residue name
     atom_name : ndarray(dtype="U4") {' CA ',' N  ',...}
-        A four character string representing the atom name.
+        Four character string representing the atom name.
         Pay attention to the whitespaces
     hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
-        An up to 5 character string, indicating in which hetero residue the
+        Up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
     coord : ndarray(dtype=float)
         (m x n x 3) ndarray containing the x, y and z coordinate of the atoms.
