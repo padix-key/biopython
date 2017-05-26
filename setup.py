@@ -381,6 +381,7 @@ PACKAGES = [
     'Bio.Sequencing',
     'Bio.Sequencing.Applications',
     'Bio.Statistics',
+    'Bio.structure',
     'Bio.SubsMat',
     'Bio.SVDSuperimposer',
     'Bio.PDB.QCPSuperimposer',

@@ -18,7 +18,7 @@ values and the coordinates as length 3 ndarray.
 An `AtomArray` stores data for an entire model containing *n* atoms.
 Therefore the annotations are represented as ndarrays of length *n*, so called
 annotation arrays. The coordinates are a (n x 3) ndarray.
-`AtomArrayStack` stores data for *m* models. For this, each `AtomArray` in
+`AtomArrayStack` stores data for *m* models. Each `AtomArray` in
 the `AtomArrayStack` has the same annotation arrays, but may differ in atom
 coordinates. Therefore the annotation arrays are represented as ndarrays of
 length *n*, while the coordinates are a (m x n x 3) ndarray.
