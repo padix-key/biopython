@@ -962,10 +962,11 @@ def to_structure(stack, id=""):
     --------
     to_array_stack
     """
-    structure = Structure(id)
+    structure = Bio.PDB.Structure.Structure(id)
     for i, array in enumerate(stack):
-        model = struc.to_model(array, i)
+        model = to_model(array, i)
         structure.add(model)
+    return structure
 
 
 def _get_model_size(model, insertion_code=""):

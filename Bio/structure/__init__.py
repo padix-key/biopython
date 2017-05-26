@@ -25,7 +25,8 @@ multiple advantages:
     
 Based ony the implementation in `numpy` arrays, this package furthermore
 contains functions for structure analysis, manipulation and visualisation.
-An `BIO.PDB.Model.Model` can be converted into an AtomArray and vice versa.
+An `Entity` from `BIO.PDB` can be converted into an `AtomArrray` or
+`AtomArrayStack` and vice versa.
 """
 
 from .atoms import *
