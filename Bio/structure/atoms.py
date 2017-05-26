@@ -146,7 +146,7 @@ class _AtomAnnotationList(object):
         --------
         equal_annotations
         """
-        return self.equal_annotations()
+        return self.equal_annotations(item)
     
     def __ne__(self, item):
         """
