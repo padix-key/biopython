@@ -25,7 +25,7 @@ def superimpose(reference, subject, ca_only=True):
         The structure(s) which is/are superimposed on the `reference`
         structure. Both, `reference` and `subject` should have equal
         annotation arrays and must have equal sizes.
-    ca_only: boolean, optional
+    ca_only: bool, optional
         If True, the function performs the superimpostion
         considering only the "CA" atoms. This increases the
         performance drastically but decreases the accuracy slightly.
@@ -95,8 +95,8 @@ def _superimpose(reference, subject, ca_only):
             # For performance reasons the Kabsch algorithm
             # is only performed with "CA" per default
             # Implicitly this creates array copies
-            sub_centered = subject[(subject.atom_name == "CA")]
-            ref_centered = reference[(reference.atom_name == "CA")]
+            sub_centered = subject[(subject.atom_name == " CA ")]
+            ref_centered = reference[(reference.atom_name == " CA ")]
         else:
             sub_centered = subject.copy();
             ref_centered = reference.copy();

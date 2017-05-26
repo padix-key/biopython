@@ -7,11 +7,11 @@
 This module contains the main types of the `Structure` subpackage: `Atom`,
 `AtomArray` and `AtomArrayStack`.
 
-In this context an atom is described by two kinds of attributes: the coordinates
-and the annotations. The annotations include information about polypetide chain
-id, residue id, residue name, hetero atom information and atom name. The
-coordinates are a `numpy` float ndarray of length 3, containing the x, y and z
-coordinates.
+In this context an atom is described by two kinds of attributes: the
+coordinates and the annotations. The annotations include information about
+polypetide chain id, residue id, residue name, hetero atom information and atom
+name. The coordinates are a `numpy` float ndarray of length 3, containing the
+x, y and z coordinates.
 
 An `Atom` contains data for a single atom, it stores the annotations as scalar
 values and the coordinates as length 3 ndarray.
@@ -96,7 +96,7 @@ class _AtomAnnotationList(object):
         
         Returns
         -------
-        integrity : boolean
+        integrity : bool
             True, if the attribute shapes are consistent.
         """
         if self.chain_id.shape != (len(self),):
@@ -123,7 +123,7 @@ class _AtomAnnotationList(object):
         
         Returns
         -------
-        equality : boolean
+        equality : bool
             True, if the aannotation arrays are equal.
         """
         if not isinstance(item, _AtomAnnotationList):
@@ -139,6 +139,52 @@ class _AtomAnnotationList(object):
         if not np.array_equal(self.hetero, item.hetero):
             return False
         return True
+    
+    def filter_atoms(self, filter):
+        """
+        Create a filter for defined atom names.
+        
+        This method has a similar result to ``object.atom_name == filter``.
+        The difference is that this method trims whitespaces from the compared
+        values. Furthermore this method can take special filter values, to
+        filter for groups of atom names or element names:
+        
+            - "all": No filtering is applied
+            - "backbone": Filters all protein backbone atoms ("N","CA","C")
+            - "hetero": Filters all atoms from hetero residues
+            - "E=X" Filters all atom of element *X*
+            
+        Since this method involves whitespace stripping, the performance is
+        lower compared to ``object.atom_name == filter``.
+        
+        Parameters
+        ----------
+        filter : string
+            The object to compare the annotation arrays with.
+        
+        Returns
+        -------
+        filter_array : 1-D ndarray(dtype=bool)
+            Filter for the given atom names, used for fancy indexing. Use atom
+            names or the special filters mentioned above.
+        """
+        if filter == "all":
+            return np.ones(len(self), dtype=bool)
+        elif filter == "backbone":
+            return [((self.atom_name == " N  ") |
+                   (self.atom_name == " CA ") |
+                   (self.atom_name == " C  ")) &
+                   (self.hetero == " ")]
+        elif filter == "hetero":
+            return self.hetero != " "
+        elif "E=" in filter:
+            element = filter[-1]
+            return np.array(
+                [name.strip()[0] == element for name in self.atom_name])
+        else:
+            filter = filter.strip()
+            return np.array(
+                [name.strip() == filter for name in self.atom_name])
     
     def __eq__(self, item):
         """
@@ -283,7 +329,7 @@ class AtomArray(_AtomAnnotationList):
         
         Returns
         -------
-        integrity : boolean
+        integrity : bool
             True, if the attribute shapes are consistent.
         """
         if not super().check_integrity():
@@ -421,7 +467,7 @@ class AtomArray(_AtomAnnotationList):
         
         Returns
         -------
-        equal : boolean
+        equal : bool
             True, if `item` is an `AtomArray`
             and all its attribute arrays equals the ones of this object.
         """
@@ -459,7 +505,7 @@ class AtomArrayStack(_AtomAnnotationList):
     annotation arrays.
     
     Since the annotations are equal for each array the annotaion arrays are
-    1-D, while the coordinate array is 3-D (m x n x 3)-
+    1-D, while the coordinate array is 3-D (m x n x 3).
     
     All attributes correspond to `Entity` attributes in `Bio.PDB`.
     
@@ -503,7 +549,7 @@ class AtomArrayStack(_AtomAnnotationList):
         
         Returns
         -------
-        integrity : boolean
+        integrity : bool
             True, if the attribute shapes are consistent.
         """
         if not super().check_integrity():
@@ -647,7 +693,7 @@ class AtomArrayStack(_AtomAnnotationList):
         
         Returns
         -------
-        equal : boolean
+        equal : bool
             True, if `item` is an `AtomArray`
             and all its attribute arrays equals the ones of this object.
         """
@@ -689,7 +735,7 @@ def stack(arrays):
     
     Parameters
     ----------
-    arrays : Iterable object of AtomArray
+    arrays : array_like(AtomArray)
         The atom arrays to be combined in a stack.
     
     Returns
@@ -751,13 +797,13 @@ def to_array(model, insertion_code=""):
                     arr.hetero[i] = residue.id[0]
                     arr.res_id[i] = int(residue.id[1])
                     arr.res_name[i] = residue.get_resname()
-                    arr.atom_name[i] = atom.get_id()
+                    arr.atom_name[i] = atom.get_fullname()
                     arr.coord[i] = atom.get_coord()
                     i += 1
     return arr
 
 
-def to_model(array):
+def to_model(array, id=0):
     """
     Create a `Bio.PDB.Model.Model` from an `AtomArray`.
     
@@ -767,6 +813,8 @@ def to_model(array):
     ----------
     array : AtomArray
         The atom array to be converted to a model.
+    id: int
+        ID of the model.
     
     Returns
     -------
@@ -777,7 +825,7 @@ def to_model(array):
     --------
     to_array
     """
-    model = Bio.PDB.Model.Model(0)
+    model = Bio.PDB.Model.Model(id)
     # Iterate through all atoms
     for i in range(len(array)):
         # Extract annotations and coordinates of every atom
@@ -807,7 +855,7 @@ def to_model(array):
             atom_curr = res_curr[atom_name]
         except KeyError:
             atom_curr = Bio.PDB.Atom.Atom(atom_name, coord, 0, 1, " ",
-                                          atom_name, i+1, atom_name[0])
+                                          atom_name, i+1, atom_name.strip()[0])
             res_curr.add(atom_curr)
     return model
 
@@ -844,8 +892,8 @@ def coord(item):
     Parameters
     ----------
     item : `AtomArray` or `AtomArrayStack` or ndarray
-        Takes the coord attribute, if `item` is `AtomArray` or `AtomArrayStack`,
-        or takes directly a ndarray.
+        Takes the coord attribute, if `item` is `AtomArray` or
+        `AtomArrayStack`, or takes directly a ndarray.
     
     Returns
     -------

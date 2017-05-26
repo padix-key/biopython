@@ -155,9 +155,9 @@ def dihedral_backbone(atom_array, chain_id):
     """
     try:
         # Filter all backbone atoms
-        backbone = atom_array[((atom_array.atom_name == "N") |
-                               (atom_array.atom_name == "CA") |
-                               (atom_array.atom_name == "C")) &
+        backbone = atom_array[((atom_array.atom_name == " N  ") |
+                               (atom_array.atom_name == " CA ") |
+                               (atom_array.atom_name == " C  ")) &
                                (atom_array.hetero == " ") &
                                (atom_array.chain_id == chain_id)]
         angle_atoms = np.zeros(( len(backbone)-3, 4, 3 ))
