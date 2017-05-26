@@ -40,7 +40,7 @@ class _AtomAnnotationList(object):
     `AtomArray` and `AtomArrayStack`.
     """
     
-    def __init__(self, length: int=None):
+    def __init__(self, length=None):
         """
         Create the annotation arrays
         """
@@ -53,7 +53,7 @@ class _AtomAnnotationList(object):
         self.atom_name = np.zeros(length, dtype="U4")
         self.hetero = np.zeros(length, dtype="U5")
         
-    def seq_length(self, chain_id: str="all"):
+    def seq_length(self, chain_id="all"):
         """
         Calculate the amount of residues in a polypeptide chain.
         
@@ -191,8 +191,8 @@ class Atom(object):
         atom is in. If the residue is a standard amino acid the value is `' '`.
     """
     
-    def __init__(self, chain_id: str, res_id: int, res_name: str,
-                 atom_name: str, hetero: str=" ", coord=np.zeros(3)):
+    def __init__(self, chain_id, res_id, res_name,
+                 atom_name, hetero=" ", coord=np.zeros(3)):
         """
         Create an `Atom`.
         
@@ -244,7 +244,7 @@ class AtomArray(_AtomAnnotationList):
         (n x 3) ndarray containing the x, y and z coordinate of the atoms.
     """
     
-    def __init__(self, length: int=None):
+    def __init__(self, length=None):
         """
         Create an `AtomArray`.
         
@@ -358,7 +358,7 @@ class AtomArray(_AtomAnnotationList):
         except:
             raise IndexError("Invalid index") from None
         
-    def __setitem__(self, index: int, atom: Atom):
+    def __setitem__(self, index, atom):
         """
         Set the atom at the specified array position.
         
@@ -379,7 +379,7 @@ class AtomArray(_AtomAnnotationList):
         else:
             raise IndexError("Index must be integer")
         
-    def __delitem__(self, index: int):
+    def __delitem__(self, index):
         """
         Deletes the atom at the specified array position.
         
@@ -481,7 +481,7 @@ class AtomArrayStack(_AtomAnnotationList):
         (m x n x 3) ndarray containing the x, y and z coordinate of the atoms.
     """
     
-    def __init__(self, depth: int=None, length: int=None):
+    def __init__(self, depth=None, length=None):
         """
         Create an `AtomArrayStack`.
         
@@ -590,7 +590,7 @@ class AtomArrayStack(_AtomAnnotationList):
             raise IndexError("Invalid index")
             
     
-    def __setitem__(self, index: int, array: AtomArray):
+    def __setitem__(self, index, array):
         """
         Set the atom array at the specified stack position.
         
@@ -610,7 +610,7 @@ class AtomArrayStack(_AtomAnnotationList):
         else:
             raise IndexError("Index must be integer")
         
-    def __delitem__(self, index: int):
+    def __delitem__(self, index):
         """
         Deletes the atom array at the specified stack position.
         
@@ -712,7 +712,7 @@ def stack(arrays):
     array_stack.coord = np.stack(coord_list, axis=0)
     return array_stack
 
-def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
+def to_array(model, insertion_code=""):
     """
     Create an `AtomArray` from a `Bio.PDB.Model.Model`.
     
@@ -757,7 +757,7 @@ def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
     return arr
 
 
-def to_model(array: AtomArray):
+def to_model(array):
     """
     Create a `Bio.PDB.Model.Model` from an `AtomArray`.
     
@@ -812,7 +812,7 @@ def to_model(array: AtomArray):
     return model
 
 
-def _get_model_size(model: Bio.PDB.Model.Model, insertion_code: str=""):
+def _get_model_size(model, insertion_code=""):
     """
     Calculate the number of atoms in a model.
     """
@@ -827,7 +827,7 @@ def _get_model_size(model: Bio.PDB.Model.Model, insertion_code: str=""):
     return size
 
 
-def _get_insertion_code(residue: Bio.PDB.Residue.Residue):
+def _get_insertion_code(residue):
     """
     Get the insertion code of a residue.
     """

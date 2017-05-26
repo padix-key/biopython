@@ -12,7 +12,7 @@ import numpy as np
 from . import Atom, AtomArray, AtomArrayStack
 from . import vector_dot
 
-def rmsd(reference: AtomArray, subject):
+def rmsd(reference, subject):
     """
     Calculate the RMSD between two structures.
     
@@ -46,7 +46,7 @@ def rmsd(reference: AtomArray, subject):
     return np.sqrt(np.mean(sq_euclidian, axis=-1))
 
 
-def rmsf(reference: AtomArray, subject: AtomArrayStack):
+def rmsf(reference, subject):
     """
     Calculate the RMSF between two structures.
     
@@ -83,7 +83,7 @@ def rmsf(reference: AtomArray, subject: AtomArrayStack):
     np.linalg.svd(a)
 
 
-def average(atom_arrays: AtomArrayStack):
+def average(atom_arrays):
     """
     Calculate an average structure
     
