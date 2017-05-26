@@ -542,6 +542,25 @@ class AtomArrayStack(_AtomAnnotationList):
             return
         super().__init__(length)
         self.coord = np.zeros((depth, length, 3), dtype=float)
+        
+    def copy(self):
+        """
+        Create a new `AtomArrayStack` instance
+        with all attribute arrays copied.
+        
+        Returns
+        -------
+        new_stack: AtomArrayStack
+            A deep copy of this stack.
+        """
+        new_stack = AtomArrayStack()
+        new_stack.chain_id = np.copy(self.chain_id)
+        new_stack.res_id = np.copy(self.res_id)
+        new_stack.res_name = np.copy(self.res_name)
+        new_stack.atom_name = np.copy(self.atom_name)
+        new_stack.hetero = np.copy(self.hetero)
+        new_stack.coord = np.copy(self.coord)
+        return new_stack
     
     def check_integrity(self):
         """
@@ -726,6 +745,29 @@ class AtomArrayStack(_AtomAnnotationList):
             string += str(array) + "\n" + "\n"
         return string
 
+def array(atoms):
+    """
+    Create an `AtomArray` from a list of `Atom`.
+    
+    Parameters
+    ----------
+    atoms : array_like(Atom)
+        The atoms to be combined in an array.
+    
+    Returns
+    -------
+    array : AtomArray
+        The listed atoms as array.
+    """
+    array = AtomArray(length=len(atoms))
+    for i in range(len(atoms)):
+        array.chain_id[i] = atoms[i].chain_id
+        array.res_id[i] = atoms[i].res_id
+        array.res_name[i] = atoms[i].res_name
+        array.atom_name[i] = atoms[i].atom_name
+        array.hetero[i] = atoms[i].hetero
+        array.coord[i] = atoms[i].coord
+    return array
 
 def stack(arrays):
     """
