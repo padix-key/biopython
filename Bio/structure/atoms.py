@@ -937,7 +937,7 @@ def to_array_stack(structure, insertion_code=""):
     have give an atom an alternative location, you have to do that manually.
     """
     return stack(
-        [struc.to_array(model, insertion_code) for model in structure])
+        [to_array(model, insertion_code) for model in structure])
 
 
 def to_structure(stack, id=""):
