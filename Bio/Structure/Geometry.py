@@ -4,8 +4,8 @@
 # as part of this package.
 
 """
-This module provides functions for geometric measurements between atoms
-in a structure, mainly lenghts and angles.
+This module provides functions for geometric measurements between atoms in a
+structure, mainly lenghts and angles.
 """
 
 import numpy as np
@@ -154,16 +154,19 @@ def dihedral_backbone(atom_array, chain_id):
     dihedral
     """
     try:
+        # Filter all backbone atoms
         backbone = atom_array[((atom_array.atom_name == "N") |
                                (atom_array.atom_name == "CA") |
                                (atom_array.atom_name == "C")) &
                                (atom_array.hetero == " ") &
                                (atom_array.chain_id == chain_id)]
         angle_atoms = np.zeros(( len(backbone)-3, 4, 3 ))
+        # Fill numpy array, where last dimension is used for dihedral calc
         for i in range(len(angle_atoms)):
             angle_atoms[i] = backbone.pos[0+i : 4+i]
         dihed = dihedral(angle_atoms[:,0], angle_atoms[:,1],
                          angle_atoms[:,2], angle_atoms[:,3])
+        # Extract the three dihedral angle types
         psi = dihed[0::3]
         omega = dihed[1::3]
         phi = dihed[2::3]
