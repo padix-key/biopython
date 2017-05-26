@@ -35,6 +35,7 @@ def simple_view(fig, atom_arrays):
     ax.set_ylim(-10,10)
     ax.set_zlim(-10,10)
     for atom_array in atom_arrays:
+        atom_array = atom_array[(atom_array.atom_name == " CA ")]
         ax.plot(atom_array.coord[:,0],
                  atom_array.coord[:,1],
                  atom_array.coord[:,2],)

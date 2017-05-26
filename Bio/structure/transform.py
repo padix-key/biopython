@@ -45,7 +45,7 @@ def rotate(atoms, angles):
     atoms : Atom or AtomArray or AtomArrayStack
         The atoms whose coordinates are altered.
     angles: Iterable object, length=3
-        The rotation angles :math:`(\\aplha_x, \\aplha_y, \\aplha_z)`.
+        The rotation angles in radians around x, y and z.
     
     Returns
     -------
@@ -92,7 +92,7 @@ def rotate_centered(atoms, angles):
     atoms : AtomArray or AtomArrayStack
         The atoms whose coordinates are altered.
     angles: Iterable object, length=3
-        the rotation angles :math:`(\\aplha_x, \\aplha_y, \\aplha_z)`
+        the rotation angles in radians around axes x, y and z.
     
     Returns
     -------
