@@ -386,7 +386,7 @@ class AtomArray(_AtomAnnotationList):
         Returns
         -------
         sub_array : Atom or AtomArray
-            if `index` is an integer an `Atom` instance,
+            If `index` is an integer an `Atom` instance,
             otherwise an `AtomArray` with reduced length is returned.
         """
         try:
@@ -627,21 +627,27 @@ class AtomArrayStack(_AtomAnnotationList):
         Returns
         -------
         sub_array : AtomArray or AtomArrayStack
-            if `index` is an integer an `Atom` instance,
-            otherwise an `AtomArray` with reduced length is returned.
+            If `index` is an integer an `AtomArray` instance,
+            otherwise an `AtomArrayStack` with reduced depth abd length
+            is returned. In case the index is a tuple(int, int) an `Atom`
+            instance is returned.  
         """
         try:
             if isinstance(index, int):
                 return self.get_array(index)
             elif isinstance(index, tuple):
-                new_stack = AtomArrayStack()
-                new_stack.chain_id = self.chain_id.__getitem__(index[1:])
-                new_stack.res_id = self.res_id.__getitem__(index[1:])
-                new_stack.res_name = self.res_name.__getitem__(index[1:])
-                new_stack.atom_name = self.atom_name.__getitem__(index[1:])
-                new_stack.hetero = self.hetero.__getitem__(index[1:])
-                new_stack.coord = self.coord.__getitem__(index)
-                return new_stack
+                if type(index[0]) == int and type(index[1]) == int:
+                    array = self.get_array(index[0])
+                    return array.get_atom(index[1])
+                else:
+                    new_stack = AtomArrayStack()
+                    new_stack.chain_id = self.chain_id.__getitem__(index[1:])
+                    new_stack.res_id = self.res_id.__getitem__(index[1:])
+                    new_stack.res_name = self.res_name.__getitem__(index[1:])
+                    new_stack.atom_name = self.atom_name.__getitem__(index[1:])
+                    new_stack.hetero = self.hetero.__getitem__(index[1:])
+                    new_stack.coord = self.coord.__getitem__(index)
+                    return new_stack
             else:
                 new_stack = AtomArrayStack()
                 new_stack.chain_id = self.chain_id.__getitem__(index)
