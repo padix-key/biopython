@@ -28,14 +28,14 @@ contains functions for structure analysis, manipulation and visualisation.
 An `BIO.PDB.Model.Model` can be converted into an AtomArray and vice versa.
 """
 
-from .Atoms import *
-from .Util import *
-from .Error import *
+from .atoms import *
+from .util import *
+from .error import *
 
-from .Geometry import *
-from .Compare import *
+from .geometry import *
+from .compare import *
 
-from .Transform import *
-from .Superimpose import *
+from .transform import *
+from .superimpose import *
 
-from .Vis import *
+from .vis import *
