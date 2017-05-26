@@ -855,7 +855,7 @@ def to_model(array, id=0):
     ----------
     array : AtomArray
         The atom array to be converted to a model.
-    id: int
+    id : int
         ID of the model.
     
     Returns
@@ -867,7 +867,7 @@ def to_model(array, id=0):
     --------
     to_array
     """
-    model = Bio.PDB.Model.Model(id)
+    model = Bio.PDB.Model.Model(id, id+1)
     # Iterate through all atoms
     for i in range(len(array)):
         # Extract annotations and coordinates of every atom
@@ -900,6 +900,66 @@ def to_model(array, id=0):
                                           atom_name, i+1, atom_name.strip()[0])
             res_curr.add(atom_curr)
     return model
+
+
+def to_array_stack(structure, insertion_code=""):
+    """
+    Create an `AtomArrayStack` from a `Bio.PDB.Structure.Structure`.
+    
+    Parameters
+    ----------
+    structure : Structure
+        All atoms of the structure are included in the atom array stack,
+        while each model yields one atom array in the stack.
+    insertion_code: string, optional
+        Since each atom may only occur once in an `AtomArray`, you have to
+        choose which insertion code to use. By default no insertion code is
+        expected.
+    
+    Returns
+    -------
+    stack : AtomArrayStack
+        The resulting atom stack.
+        
+    See Also
+    --------
+    to_structure
+    
+    Notes
+    -----
+    Currently this does not support alternative atom locations. If you want to
+    have give an atom an alternative location, you have to do that manually.
+    """
+    return stack(
+        [struc.to_array(model, insertion_code) for model in structure])
+
+
+def to_structure(stack, id=""):
+    """
+    Create a `Bio.PDB.Structure.Structure` from an `AtomArrayStack`.
+    
+    This does the reverse to `to_array_stack()`.
+    
+    Parameters
+    ----------
+    stack : AtomArrayStack
+        The atom array to be converted to a model.
+    id : string
+        ID of the structure.
+    
+    Returns
+    -------
+    structure : Structure
+        The resulting structure.
+        
+    See Also
+    --------
+    to_array_stack
+    """
+    structure = Structure(id)
+    for i, array in enumerate(stack):
+        model = struc.to_model(array, i)
+        structure.add(model)
 
 
 def _get_model_size(model, insertion_code=""):
