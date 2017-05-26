@@ -7,20 +7,21 @@
 This module contains the main types of the `Structure` subpackage: `Atom`,
 `AtomArray` and `AtomArrayStack`.
 
-In this context an atom is described by two kinds of attributes: the position
+In this context an atom is described by two kinds of attributes: the coordinates
 and the annotations. The annotations include information about polypetide chain
-id, residue id, residue name, hetero atom information and atom name. A position
-is a `numpy` float ndarray of length 3, containing the x, y and z coordinates.
+id, residue id, residue name, hetero atom information and atom name. The
+coordinates are a `numpy` float ndarray of length 3, containing the x, y and z
+coordinates.
 
 An `Atom` contains data for a single atom, it stores the annotations as scalar
-values and the position as length 3 ndarray.
+values and the coordinates as length 3 ndarray.
 An `AtomArray` stores data for an entire model containing *n* atoms.
 Therefore the annotations are represented as ndarrays of length *n*, so called
-annotation arrays. The position is a (n x 3) ndarray.
+annotation arrays. The coordinates are a (n x 3) ndarray.
 `AtomArrayStack` stores data for *m* models. For this, each `AtomArray` in
 the `AtomArrayStack` has the same annotation arrays, but may differ in atom
-positions. Therefore the annotation arrays are represented as ndarrays of
-length *n*, while the position is (m x n x 3) ndarray.
+coordinates. Therefore the annotation arrays are represented as ndarrays of
+length *n*, while the coordinates are a (m x n x 3) ndarray.
 All types must not be subclassed.
 
 For each type, the attributes can be accessed directly. Both `AtomArray` and
@@ -191,7 +192,7 @@ class Atom(object):
     """
     
     def __init__(self, chain_id: str, res_id: int, res_name: str,
-                 atom_name: str, hetero: str=" ", pos=np.zeros(3)):
+                 atom_name: str, hetero: str=" ", coord=np.zeros(3)):
         """
         Create an `Atom`.
         
@@ -204,11 +205,11 @@ class Atom(object):
         self.res_name = res_name
         self.atom_name = atom_name
         self.hetero = hetero
-        pos = np.array(pos, dtype=float)
-        # Check if pos contains x,y and z coordinates
-        if pos.shape != (3,):
+        coord = np.array(coord, dtype=float)
+        # Check if coord contains x,y and z coordinates
+        if coord.shape != (3,):
             raise ValueError("Position must be ndarray with shape (3,)")
-        self.pos = pos
+        self.coord = coord
     
     def __str__(self):
         """
@@ -216,7 +217,7 @@ class Atom(object):
         """
         return (self.chain_id + "\t" + str(self.res_id) + "\t" +
                 self.res_name + "\t" + self.atom_name + "\t" + 
-                self.hetero + "\t" + str(self.pos))
+                self.hetero + "\t" + str(self.coord))
 
     
 class AtomArray(_AtomAnnotationList):
@@ -239,7 +240,7 @@ class AtomArray(_AtomAnnotationList):
     hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
         An up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
-    pos : ndarray(dtype=float)
+    coord : ndarray(dtype=float)
         (n x 3) ndarray containing the x, y and z coordinate of the atoms.
     """
     
@@ -256,7 +257,7 @@ class AtomArray(_AtomAnnotationList):
         if length == None:
             return
         super().__init__(length)
-        self.pos = np.zeros((length, 3), dtype=float)
+        self.coord = np.zeros((length, 3), dtype=float)
         
     def copy(self):
         """
@@ -273,7 +274,7 @@ class AtomArray(_AtomAnnotationList):
         new_array.res_name = np.copy(self.res_name)
         new_array.atom_name = np.copy(self.atom_name)
         new_array.hetero = np.copy(self.hetero)
-        new_array.pos = np.copy(self.pos)
+        new_array.coord = np.copy(self.coord)
         return new_array
         
     def check_integrity(self):
@@ -287,7 +288,7 @@ class AtomArray(_AtomAnnotationList):
         """
         if not super().check_integrity():
             return False
-        if self.pos.shape != (len(self), 3):
+        if self.coord.shape != (len(self), 3):
             return False
         return True
     
@@ -312,7 +313,7 @@ class AtomArray(_AtomAnnotationList):
                     res_name = self.res_name[index],
                     atom_name = self.atom_name[index],
                     hetero = self.hetero[index],
-                    pos = self.pos[index])
+                    coord = self.coord[index])
     
     def __iter__(self):
         """
@@ -352,7 +353,7 @@ class AtomArray(_AtomAnnotationList):
                 new_array.res_name = self.res_name.__getitem__(index)
                 new_array.atom_name = self.atom_name.__getitem__(index)
                 new_array.hetero = self.hetero.__getitem__(index)
-                new_array.pos = self.pos.__getitem__(index)
+                new_array.coord = self.coord.__getitem__(index)
                 return new_array
         except:
             raise IndexError("Invalid index") from None
@@ -374,7 +375,7 @@ class AtomArray(_AtomAnnotationList):
             self.res_name[index] = atom.res_name
             self.atom_name[index] = atom.atom_name
             self.hetero[index] = atom.hetero
-            self.pos[index] = atom.pos
+            self.coord[index] = atom.coord
         else:
             raise IndexError("Index must be integer")
         
@@ -393,7 +394,7 @@ class AtomArray(_AtomAnnotationList):
             self.res_name = np.delete(self.res_name, index, axis=0)
             self.atom_name = np.delete(self.atom_name, index, axis=0)
             self.hetero = np.delete(self.hetero, index, axis=0)
-            self.pos = np.delete(self.pos, index, axis=0)
+            self.coord = np.delete(self.coord, index, axis=0)
         else:
             raise IndexError("Index must be integer")
         
@@ -406,8 +407,8 @@ class AtomArray(_AtomAnnotationList):
         length : int
             Length of the array.
         """
-        # length is determined by length of pos attribute
-        return self.pos.shape[0]
+        # length is determined by length of coord attribute
+        return self.coord.shape[0]
     
     def __eq__(self, item):
         """
@@ -428,7 +429,7 @@ class AtomArray(_AtomAnnotationList):
             return False
         if not isinstance(item, AtomArray):
             return False
-        if not np.array_equal(self.pos, item.pos):
+        if not np.array_equal(self.coord, item.coord):
             return False
         return True
     
@@ -458,7 +459,7 @@ class AtomArrayStack(_AtomAnnotationList):
     annotation arrays.
     
     Since the annotations are equal for each array the annotaion arrays are
-    1-D, while the position array is 3-D (m x n x 3)-
+    1-D, while the coordinate array is 3-D (m x n x 3)-
     
     All attributes correspond to `Entity` attributes in `Bio.PDB`.
     
@@ -476,7 +477,7 @@ class AtomArrayStack(_AtomAnnotationList):
     hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
         An up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
-    pos : ndarray(dtype=float)
+    coord : ndarray(dtype=float)
         (m x n x 3) ndarray containing the x, y and z coordinate of the atoms.
     """
     
@@ -494,7 +495,7 @@ class AtomArrayStack(_AtomAnnotationList):
         if depth == None or length == None:
             return
         super().__init__(length)
-        self.pos = np.zeros((depth, length, 3), dtype=float)
+        self.coord = np.zeros((depth, length, 3), dtype=float)
     
     def check_integrity(self):
         """
@@ -507,7 +508,7 @@ class AtomArrayStack(_AtomAnnotationList):
         """
         if not super().check_integrity():
             return False
-        if self.pos.shape != (len(self), super().__len__(), 3):
+        if self.coord.shape != (len(self), super().__len__(), 3):
             return False
         return True
     
@@ -533,7 +534,7 @@ class AtomArrayStack(_AtomAnnotationList):
         array.res_name = self.res_name
         array.atom_name = self.atom_name
         array.hetero = self.hetero
-        array.pos = self.pos[index]
+        array.coord = self.coord[index]
         return array
 
     def __iter__(self):
@@ -574,7 +575,7 @@ class AtomArrayStack(_AtomAnnotationList):
                 new_stack.res_name = self.res_name.__getitem__(index[1:])
                 new_stack.atom_name = self.atom_name.__getitem__(index[1:])
                 new_stack.hetero = self.hetero.__getitem__(index[1:])
-                new_stack.pos = self.pos.__getitem__(index)
+                new_stack.coord = self.coord.__getitem__(index)
                 return new_stack
             else:
                 new_stack = AtomArrayStack()
@@ -583,7 +584,7 @@ class AtomArrayStack(_AtomAnnotationList):
                 new_stack.res_name = self.res_name.__getitem__(index)
                 new_stack.atom_name = self.atom_name.__getitem__(index)
                 new_stack.hetero = self.hetero.__getitem__(index)
-                new_stack.pos = self.pos.__getitem__(index)
+                new_stack.coord = self.coord.__getitem__(index)
                 return new_stack
         except:
             raise IndexError("Invalid index")
@@ -605,7 +606,7 @@ class AtomArrayStack(_AtomAnnotationList):
         if not super(AtomArray, array).__eq__(array):
             raise ValueError("The array's atom annotations do not fit")
         if isinstance(index, int):
-            self.pos[index] = array.pos
+            self.coord[index] = array.coord
         else:
             raise IndexError("Index must be integer")
         
@@ -619,7 +620,7 @@ class AtomArrayStack(_AtomAnnotationList):
             The position where the atom array should be deleted.
         """
         if isinstance(index, int):
-            self.pos = np.delete(self.pos, index, axis=0)
+            self.coord = np.delete(self.coord, index, axis=0)
         else:
             raise IndexError("Index must be integer")
     
@@ -632,8 +633,8 @@ class AtomArrayStack(_AtomAnnotationList):
         depth : int
             depth of the array.
         """
-        # length is determined by length of pos attribute
-        return self.pos.shape[0]
+        # length is determined by length of coord attribute
+        return self.coord.shape[0]
     
     def __eq__(self, item):
         """
@@ -654,7 +655,7 @@ class AtomArrayStack(_AtomAnnotationList):
             return False
         if not isinstance(item, AtomArrayStack):
             return False
-        if not np.array_equal(self.pos, item.pos):
+        if not np.array_equal(self.coord, item.coord):
             return False
         return True
     
@@ -707,8 +708,8 @@ def stack(arrays):
     array_stack.res_name = arrays[0].res_name
     array_stack.atom_name = arrays[0].atom_name
     array_stack.hetero = arrays[0].hetero
-    pos_list = [array.pos for array in arrays] 
-    array_stack.pos = np.stack(pos_list, axis=0)
+    coord_list = [array.coord for array in arrays] 
+    array_stack.coord = np.stack(coord_list, axis=0)
     return array_stack
 
 def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
@@ -751,7 +752,7 @@ def to_array(model: Bio.PDB.Model.Model, insertion_code: str=""):
                     arr.res_id[i] = int(residue.id[1])
                     arr.res_name[i] = residue.get_resname()
                     arr.atom_name[i] = atom.get_id()
-                    arr.pos[i] = atom.get_coord()
+                    arr.coord[i] = atom.get_coord()
                     i += 1
     return arr
 
@@ -779,13 +780,13 @@ def to_model(array: AtomArray):
     model = Bio.PDB.Model.Model(0)
     # Iterate through all atoms
     for i in range(len(array)):
-        # Extract annotations and position of every atom
+        # Extract annotations and coordinates of every atom
         chain_id = array.chain_id[i]
         hetero = array.hetero[i]
         res_id = array.res_id[i]
         res_name = array.res_name[i]
         atom_name = array.atom_name[i]
-        pos = array.pos[i]
+        coord = array.coord[i]
         # Try to access the chain entity that corresponds to this atom
         # if chain does not exist create chain
         # and add it to super entity (model)
@@ -805,7 +806,7 @@ def to_model(array: AtomArray):
         try:
             atom_curr = res_curr[atom_name]
         except KeyError:
-            atom_curr = Bio.PDB.Atom.Atom(atom_name, pos, 0, 1, " ",
+            atom_curr = Bio.PDB.Atom.Atom(atom_name, coord, 0, 1, " ",
                                           atom_name, i+1, atom_name[0])
             res_curr.add(atom_curr)
     return model
@@ -833,9 +834,9 @@ def _get_insertion_code(residue: Bio.PDB.Residue.Residue):
     return residue.id[2].strip()
 
 
-def position(item):
+def coord(item):
     """
-    Get the atom position of the given array.
+    Get the atom coordinates of the given array.
     
     This may be directly and `AtomArray` or `AtomArrayStack` or alternatively
     an (n x 3) or (m x n x 3) `ndarray` containing the coordinates.
@@ -843,16 +844,16 @@ def position(item):
     Parameters
     ----------
     item : `AtomArray` or `AtomArrayStack` or ndarray
-        Takes the pos attribute, if `item` is `AtomArray` or `AtomArrayStack`,
+        Takes the coord attribute, if `item` is `AtomArray` or `AtomArrayStack`,
         or takes directly a ndarray.
     
     Returns
     -------
-    pos : ndarray
+    coord : ndarray
         Atom coordinates.
     """
 
     if type(item) in (Atom, AtomArray, AtomArrayStack):
-        return item.pos
+        return item.coord
     else:
         return np.array(item)

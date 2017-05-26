@@ -9,6 +9,7 @@ Utility functions for in internal use in `Bio.Structure` package
 
 import numpy as np
 
+
 def vector_dot(v1,v2):
     """
     Calculate vector dot product of two vectors.
@@ -25,6 +26,7 @@ def vector_dot(v1,v2):
         Scalar product with the dimension of the input arrays reduced by 1
     """
     return (v1*v2).sum(axis=-1)
+
 
 def norm_vector(v):
     """

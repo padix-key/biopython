@@ -17,7 +17,7 @@ def simple_view(fig, atom_arrays):
     Parameters
     ----------
     fig : Figure
-        The `Figure` to plot the structures in
+        The `Figure` to plot the structures in.
     atom_arrays : Iterable object of AtomArray, e.g. AtomArrayStack
         Structures to plot.
     
@@ -35,7 +35,7 @@ def simple_view(fig, atom_arrays):
     ax.set_ylim(-10,10)
     ax.set_zlim(-10,10)
     for atom_array in atom_arrays:
-        ax.plot(atom_array.pos[:,0],
-                 atom_array.pos[:,1],
-                 atom_array.pos[:,2],)
+        ax.plot(atom_array.coord[:,0],
+                 atom_array.coord[:,1],
+                 atom_array.coord[:,2],)
     return ax

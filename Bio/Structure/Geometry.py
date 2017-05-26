@@ -10,7 +10,7 @@ structure, mainly lenghts and angles.
 
 import numpy as np
 from . import Atom, AtomArray, AtomArrayStack
-from . import position
+from . import coord
 from . import vector_dot, norm_vector
 from . import BadStructureError
 
@@ -22,7 +22,7 @@ def distance(atoms1, atoms2):
     ----------
     atoms1, atoms2 : ndarray or Atom or AtomArray or AtomArrayStack
         The atoms to measure the distances between. The dimensions may vary.
-        Alternatively an ndarray containing the position(s) can be provided.
+        Alternatively an ndarray containing the coordinates can be provided.
     
     Returns
     -------
@@ -30,8 +30,8 @@ def distance(atoms1, atoms2):
         The atom distances. The shape is equal to the shape of
         the input `atoms` with the highest dimensionality minus the last axis.
     """
-    v1 = position(atoms1)
-    v2 = position(atoms2)
+    v1 = coord(atoms1)
+    v2 = coord(atoms2)
     # decide subtraction order based on shape,
     # since an array can be only subtracted by an array with less dimensions
     if len(v1.shape) <= len(v2.shape):
@@ -50,7 +50,7 @@ def centroid(atoms):
     ----------
     atoms: ndarray orAtomArray or AtomArrayStack
         The structures to determine the centroid from.
-        Alternatively an ndarray containing the position(s) can be provided.
+        Alternatively an ndarray containing the coordinates can be provided.
     
     Returns
     -------
@@ -58,7 +58,7 @@ def centroid(atoms):
         The centroid of the structure(s). The shape is equal to the shape of
         the input `atoms` with the highest dimensionality minus the second last axis.
     """
-    return np.mean(position(atoms), axis=-2)
+    return np.mean(coord(atoms), axis=-2)
 
 
 def angle(atom1, atom2, atom3):
@@ -69,7 +69,7 @@ def angle(atom1, atom2, atom3):
     ----------
     atoms1, atoms2, atoms3 : ndarray or Atom or AtomArray or AtomArrayStack
         The atoms to measure the angle between.
-        Alternatively an ndarray containing the position(s) can be provided.
+        Alternatively an ndarray containing the coordinates can be provided.
     
     Returns
     -------
@@ -77,8 +77,8 @@ def angle(atom1, atom2, atom3):
         The angle(s) between the atoms. The shape is equal to the shape of
         the input `atoms` with the highest dimensionality minus the last axis.
     """
-    v1 = position(atom2) - position(atom1)
-    v2 = position(atom3) - position(atom2)
+    v1 = coord(atom2) - coord(atom1)
+    v2 = coord(atom3) - coord(atom2)
     norm_vector(v1)
     norm_vector(v2)
     return np.arccos(vector_dot(v1,v2))
@@ -92,7 +92,7 @@ def dihedral(atom1, atom2, atom3, atom4):
     ----------
     atoms1, atoms2, atoms3, atom4 : ndarray or Atom or AtomArray or AtomArrayStack
         The atoms to measure the dihedral angle between.
-        Alternatively an ndarray containing the position(s) can be provided.
+        Alternatively an ndarray containing the coordinates can be provided.
     
     Returns
     -------
@@ -104,9 +104,9 @@ def dihedral(atom1, atom2, atom3, atom4):
     --------
     dihedral_backbone
     """
-    v1 = position(atom2) - position(atom1)
-    v2 = position(atom3) - position(atom2)
-    v3 = position(atom4) - position(atom3)
+    v1 = coord(atom2) - coord(atom1)
+    v2 = coord(atom3) - coord(atom2)
+    v3 = coord(atom4) - coord(atom3)
     norm_vector(v1)
     norm_vector(v2)
     norm_vector(v3)
@@ -163,7 +163,7 @@ def dihedral_backbone(atom_array, chain_id):
         angle_atoms = np.zeros(( len(backbone)-3, 4, 3 ))
         # Fill numpy array, where last dimension is used for dihedral calc
         for i in range(len(angle_atoms)):
-            angle_atoms[i] = backbone.pos[0+i : 4+i]
+            angle_atoms[i] = backbone.coord[0+i : 4+i]
         dihed = dihedral(angle_atoms[:,0], angle_atoms[:,1],
                          angle_atoms[:,2], angle_atoms[:,3])
         # Extract the three dihedral angle types

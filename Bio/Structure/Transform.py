@@ -18,7 +18,7 @@ def translate(atoms, vector):
     Parameters
     ----------
     atoms : Atom or AtomArray or AtomArrayStack
-        The atoms whose positions are altered.
+        The atoms whose coordinates are altered.
     vector: Iterable object, length=3
         The translation vector :math:`(x, y, z)`.
     
@@ -30,7 +30,7 @@ def translate(atoms, vector):
     if len(vector) != 3:
         raise ValueError("Translation vector must be container of length 3")
     transformed = atoms.copy()
-    transformed.pos += np.array(vector)
+    transformed.coord += np.array(vector)
     return transformed
 
 def rotate(atoms, angles):
@@ -43,7 +43,7 @@ def rotate(atoms, angles):
     Parameters
     ----------
     atoms : Atom or AtomArray or AtomArrayStack
-        The atoms whose positions are altered.
+        The atoms whose coordinates are altered.
     angles: Iterable object, length=3
         The rotation angles :math:`(\\aplha_x, \\aplha_y, \\aplha_z)`.
     
@@ -75,9 +75,9 @@ def rotate(atoms, angles):
     # Copy AtomArray(Stack) and apply rotations
     # Note that the coordinates are treated as row vector
     transformed = atoms.copy()
-    transformed.pos = np.dot(transformed.pos, rot_x)
-    transformed.pos = np.dot(transformed.pos, rot_y)
-    transformed.pos = np.dot(transformed.pos, rot_z)
+    transformed.coord = np.dot(transformed.coord, rot_x)
+    transformed.coord = np.dot(transformed.coord, rot_y)
+    transformed.coord = np.dot(transformed.coord, rot_z)
     return transformed
 
 def rotate_centered(atoms, angles):
@@ -90,7 +90,7 @@ def rotate_centered(atoms, angles):
     Parameters
     ----------
     atoms : AtomArray or AtomArrayStack
-        The atoms whose positions are altered.
+        The atoms whose coordinates are altered.
     angles: Iterable object, length=3
         the rotation angles :math:`(\\aplha_x, \\aplha_y, \\aplha_z)`
     
@@ -106,7 +106,7 @@ def rotate_centered(atoms, angles):
     # Rotation around centroid requires translation of centroid to origin
     transformed = atoms.copy()
     centro = centroid(transformed)
-    transformed.pos -= centro
+    transformed.coord -= centro
     transformed = rotate(transformed, angles)
-    transformed.pos += centro
+    transformed.coord += centro
     return transformed

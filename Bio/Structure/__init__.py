@@ -9,7 +9,7 @@ A subpackage for handling protein structures.
 This subpackage enables efficient and easy handling of protein structure data
 by representation of atom attributes in `numpy` arrays. These atom attributes
 include polypetide chain id, residue id, residue name, hetero residue
-information, atom name and atom position.
+information, atom name and atom coordinates.
 
 The package contains mainly three types: `Atom`, `AtomArray` and
 `AtomArrayStack`. An `Atom` contains data for a single atom, an `AtomArray`

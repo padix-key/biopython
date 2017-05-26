@@ -44,7 +44,8 @@ def rmsd(reference: AtomArray, subject):
     """
     sq_euclidian = _sq_euclidian(reference, subject)
     return np.sqrt(np.mean(sq_euclidian, axis=-1))
-    
+
+
 def rmsf(reference: AtomArray, subject: AtomArrayStack):
     """
     Calculate the RMSF between two structures.
@@ -81,11 +82,12 @@ def rmsf(reference: AtomArray, subject: AtomArrayStack):
     return np.sqrt(np.mean(sq_euclidian, axis=0))
     np.linalg.svd(a)
 
+
 def average(atom_arrays: AtomArrayStack):
     """
     Calculate an average structure
     
-    Calculate the average structure by calculating the average position
+    Calculate the average structure by calculating the average coordinates
     of each atom.
     
     Parameters
@@ -111,9 +113,10 @@ def average(atom_arrays: AtomArrayStack):
     calculation of e.g. the RMSD or RMSF. 
     """
     mean_array = atom_arrays[0].copy()
-    mean_array.pos = np.mean(atom_arrays.pos, axis=0)
+    mean_array.coord = np.mean(atom_arrays.coord, axis=0)
     return mean_array
-    
+
+
 def _sq_euclidian(reference, subject):
     """
     Calculate squared euclidian distance between atoms in two structures.
@@ -136,5 +139,5 @@ def _sq_euclidian(reference, subject):
     """
     if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
-    dif = subject.pos - reference.pos
+    dif = subject.coord - reference.coord
     return vector_dot(dif, dif)

@@ -104,12 +104,12 @@ def _superimpose(reference, subject, ca_only):
         if len(sub_centered) != len(ref_centered):
             raise BadStructureException("The subject and reference array have different amount of atoms")
         
-        sub_centered.pos -= sub_centroid
-        ref_centered.pos -= ref_centroid
+        sub_centered.coord -= sub_centroid
+        ref_centered.coord -= ref_centroid
         
         # Calculating rotation matrix using Kabsch algorithm
-        y = sub_centered.pos
-        x = ref_centered.pos
+        y = sub_centered.coord
+        x = ref_centered.coord
         # Calculate covariance matrix
         cov = np.dot(y.T, x)
         v, s, w = np.linalg.svd(cov)
@@ -124,11 +124,11 @@ def _superimpose(reference, subject, ca_only):
             # Superimposed AtomArray should not be "CA" sequence
             # therefore original subject is copied 
             fitted_subject = subject.copy()
-            fitted_subject.pos -= sub_centroid
+            fitted_subject.coord -= sub_centroid
         else:
             fitted_subject = sub_centered
-        fitted_subject.pos = np.dot(fitted_subject.pos, rotation)
-        fitted_subject.pos += ref_centroid
+        fitted_subject.coord = np.dot(fitted_subject.coord, rotation)
+        fitted_subject.coord += ref_centroid
         return fitted_subject, (-sub_centroid,rotation,ref_centroid)
 
 
@@ -156,6 +156,6 @@ def apply_superimposition(atoms, transformation):
     superimpose
     """
     transformed = atoms.copy()
-    transformed.pos += transformation[0]
-    transformed.pos = np.dot(transformed.pos, transformation[1])
-    transformed.pos += transformation[2]
+    transformed.coord += transformation[0]
+    transformed.coord = np.dot(transformed.coord, transformation[1])
+    transformed.coord += transformation[2]
