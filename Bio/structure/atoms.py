@@ -44,6 +44,13 @@ class _AtomAnnotationList(object):
         """
         Create the annotation arrays
         """
+        self.annot = {}
+        self.add_annotation("chain_id")
+        self.add_annotation("res_id")
+        self.add_annotation("res_name")
+        self.add_annotation("atom_name")
+        self.add_annotation("hetero")
+        self.add_annotation("element")
         if length == None:
             return
         # string size based on reserved columns in *.pdb files
@@ -52,6 +59,29 @@ class _AtomAnnotationList(object):
         self.res_name = np.zeros(length, dtype="U3")
         self.atom_name = np.zeros(length, dtype="U4")
         self.hetero = np.zeros(length, dtype="U5")
+        self.element = np.zeros(length, dtype="U1")
+        
+    def add_annotation(self, annotation):
+        if annotation not in self.annot:
+            self.annot[annotation] = None
+    
+    def __getattr__(self, attr):
+        if attr in self.annot:
+            return self.annot[attr]
+        else:
+            raise AttributeError("'" + "attr" + "' is not a valid atom annotation")
+        
+    def __setattr__(self, attr, value):
+        # First condition is required, since call of the second would result in
+        # indefinite calls of __getattr__
+        if attr == "annot":
+            super().__setattr__(attr, value)
+        elif attr in self.annot:
+            self.annot[attr] = value
+        else:
+            super().__setattr__(attr, value)
+        
+        
         
     def seq_length(self, chain_id="all"):
         """
@@ -99,16 +129,9 @@ class _AtomAnnotationList(object):
         integrity : bool
             True, if the attribute shapes are consistent.
         """
-        if self.chain_id.shape != (len(self),):
-            return False
-        if self.res_id.shape != (len(self)):
-            return False
-        if self.res_name.shape != (len(self)):
-            return False
-        if self.atom_name.shape != (len(self)):
-            return False
-        if self.hetero.shape != (len(self)):
-            return False
+        for annotation in self.annot.values():
+            if annotation.shape != (len(self),):
+                return False
         return True
     
     def equal_annotations(self, item):
@@ -128,16 +151,11 @@ class _AtomAnnotationList(object):
         """
         if not isinstance(item, _AtomAnnotationList):
             return False
-        if not np.array_equal(self.chain_id, item.chain_id):
+        if self.annot.keys() != item.annot.keys():
             return False
-        if not np.array_equal(self.res_id, item.res_id):
-            return False
-        if not np.array_equal(self.res_name, item.res_name):
-            return False
-        if not np.array_equal(self.atom_name, item.atom_name):
-            return False
-        if not np.array_equal(self.hetero, item.hetero):
-            return False
+        for name in self.annot:
+            if not np.array_equal(self.annot[name], item.annot[name]):
+                return False
         return True
     
     def filter_atoms(self, filter):
@@ -232,13 +250,14 @@ class Atom(object):
     atom_name : string {' CA ',' N  ',...}
         Four character string representing the atom name.
         Pay attention to the whitespaces
+    element: string {'C','O','N',...}
+        A single character representing the element.
     hetero : string {' ','W','H_GLC',...}
         Up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
     """
     
-    def __init__(self, chain_id, res_id, res_name,
-                 atom_name, hetero=" ", coord=np.zeros(3)):
+    def __init__(self, coord, **kwargs):
         """
         Create an `Atom`.
         
@@ -246,24 +265,42 @@ class Atom(object):
         ----------
         See class attributes
         """
-        self.chain_id = chain_id
-        self.res_id = res_id
-        self.res_name = res_name
-        self.atom_name = atom_name
-        self.hetero = hetero
+        self.annot = {}
+        if "kwargs" in kwargs:
+            # kwargs are given directly as dictionary
+            kwargs = kwargs["kwargs"]
+        for name, annotation in kwargs.items():
+            annot[name] = annotation
         coord = np.array(coord, dtype=float)
         # Check if coord contains x,y and z coordinates
         if coord.shape != (3,):
             raise ValueError("Position must be ndarray with shape (3,)")
         self.coord = coord
+        
+    def __getattr__(self, attr):
+        if attr in self.annot:
+            return self.annot[attr]
+        else:
+            raise AttributeError("'" + "attr" + "' is not a valid atom annotation")
+        
+    def __setattr__(self, attr, value):
+        # First condition is required, since call of the second would result in
+        # indefinite calls of __getattr__
+        if attr == "annot":
+            super().__setattr__(attr, value)
+        elif attr in self.annot:
+            self.annot[attr] = value
+        else:
+            super().__setattr__(attr, value)
     
     def __str__(self):
         """
         String representation of the atom.
         """
-        return (self.chain_id + "\t" + str(self.res_id) + "\t" +
-                self.res_name + "\t" + self.atom_name + "\t" + 
-                self.hetero + "\t" + str(self.coord))
+        string = ""
+        for value in self.annot.values():
+            string += str(value) + "\t"
+        return string + "\t" + str(self.coord)
 
     
 class AtomArray(_AtomAnnotationList):
@@ -283,6 +320,8 @@ class AtomArray(_AtomAnnotationList):
     atom_name : ndarray(dtype="U4") {' CA ',' N  ',...}
         Four character string representing the atom name.
         Pay attention to the whitespaces
+    element: string {'C','O','N',...}
+        A single character representing the element.
     hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
         Up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
@@ -300,9 +339,9 @@ class AtomArray(_AtomAnnotationList):
             If length is given, the attribute arrays will be created with
             zeros.
         """
+        super().__init__(length)
         if length == None:
             return
-        super().__init__(length)
         self.coord = np.zeros((length, 3), dtype=float)
         
     def copy(self):
@@ -315,11 +354,8 @@ class AtomArray(_AtomAnnotationList):
             A deep copy of this array.
         """
         new_array = AtomArray()
-        new_array.chain_id = np.copy(self.chain_id)
-        new_array.res_id = np.copy(self.res_id)
-        new_array.res_name = np.copy(self.res_name)
-        new_array.atom_name = np.copy(self.atom_name)
-        new_array.hetero = np.copy(self.hetero)
+        for name in self.annot:
+            new_array.annot[name] = np.copy(self.annot[name])
         new_array.coord = np.copy(self.coord)
         return new_array
         
@@ -354,12 +390,10 @@ class AtomArray(_AtomAnnotationList):
         atom : Atom
             Atom at position `index`. 
         """
-        return Atom(chain_id = self.chain_id[index],
-                    res_id = self.res_id[index],
-                    res_name = self.res_name[index],
-                    atom_name = self.atom_name[index],
-                    hetero = self.hetero[index],
-                    coord = self.coord[index])
+        kwargs = {}
+        for name, annotation in self.annot:
+            kwargs[name] = annotation[index]
+        return Atom(coord = self.coord[index], kwargs=kwargs)
     
     def __iter__(self):
         """
@@ -394,11 +428,8 @@ class AtomArray(_AtomAnnotationList):
                 return self.get_atom(index)
             else:
                 new_array = AtomArray()
-                new_array.chain_id = self.chain_id.__getitem__(index)
-                new_array.res_id = self.res_id.__getitem__(index)
-                new_array.res_name = self.res_name.__getitem__(index)
-                new_array.atom_name = self.atom_name.__getitem__(index)
-                new_array.hetero = self.hetero.__getitem__(index)
+                for annotation in self.annot:
+                    new_array.annot[annotation] = self.annot[annotation].__getitem__(index)
                 new_array.coord = self.coord.__getitem__(index)
                 return new_array
         except:
@@ -416,11 +447,8 @@ class AtomArray(_AtomAnnotationList):
             The atom to be set.
         """
         if isinstance(index, int):
-            self.chain_id[index] = atom.chain_id
-            self.res_id[index] = atom.res_id
-            self.res_name[index] = atom.res_name
-            self.atom_name[index] = atom.atom_name
-            self.hetero[index] = atom.hetero
+            for name in self.annot:
+                self.annot[name] = atom.annot[name]
             self.coord[index] = atom.coord
         else:
             raise IndexError("Index must be integer")
@@ -435,11 +463,8 @@ class AtomArray(_AtomAnnotationList):
             The position where the atom should be deleted.
         """
         if isinstance(index, int):
-            self.chain_id = np.delete(self.chain_id, index, axis=0)
-            self.res_id = np.delete(self.res_id, index, axis=0)
-            self.res_name = np.delete(self.res_name, index, axis=0)
-            self.atom_name = np.delete(self.atom_name, index, axis=0)
-            self.hetero = np.delete(self.hetero, index, axis=0)
+            for name in self.annot:
+                self.annot[name] = np.delete(self.annot[name], index, axis=0)
             self.coord = np.delete(self.coord, index, axis=0)
         else:
             raise IndexError("Index must be integer")
@@ -520,6 +545,8 @@ class AtomArrayStack(_AtomAnnotationList):
     atom_name : ndarray(dtype="U4") {' CA ',' N  ',...}
         Four character string representing the atom name.
         Pay attention to the whitespaces
+    element: string {'C','O','N',...}
+        A single character representing the element.
     hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
         Up to 5 character string, indicating in which hetero residue the
         atom is in. If the residue is a standard amino acid the value is `' '`.
@@ -538,9 +565,9 @@ class AtomArrayStack(_AtomAnnotationList):
             with zeros. `depth` corresponds to the first dimension, `length`
             to the second.
         """
+        super().__init__(length)
         if depth == None or length == None:
             return
-        super().__init__(length)
         self.coord = np.zeros((depth, length, 3), dtype=float)
         
     def copy(self):
@@ -554,11 +581,8 @@ class AtomArrayStack(_AtomAnnotationList):
             A deep copy of this stack.
         """
         new_stack = AtomArrayStack()
-        new_stack.chain_id = np.copy(self.chain_id)
-        new_stack.res_id = np.copy(self.res_id)
-        new_stack.res_name = np.copy(self.res_name)
-        new_stack.atom_name = np.copy(self.atom_name)
-        new_stack.hetero = np.copy(self.hetero)
+        for name in self.annot:
+            new_stack.annot[name] = np.copy(self.annot[name])
         new_stack.coord = np.copy(self.coord)
         return new_stack
     
@@ -594,11 +618,8 @@ class AtomArrayStack(_AtomAnnotationList):
             AtomArray at position `index`. 
         """
         array = AtomArray()
-        array.chain_id = self.chain_id
-        array.res_id = self.res_id
-        array.res_name = self.res_name
-        array.atom_name = self.atom_name
-        array.hetero = self.hetero
+        for name in self.annot:
+            array.annot[name] = self.annot[name]
         array.coord = self.coord[index]
         return array
 
@@ -641,21 +662,15 @@ class AtomArrayStack(_AtomAnnotationList):
                     return array.get_atom(index[1])
                 else:
                     new_stack = AtomArrayStack()
-                    new_stack.chain_id = self.chain_id.__getitem__(index[1:])
-                    new_stack.res_id = self.res_id.__getitem__(index[1:])
-                    new_stack.res_name = self.res_name.__getitem__(index[1:])
-                    new_stack.atom_name = self.atom_name.__getitem__(index[1:])
-                    new_stack.hetero = self.hetero.__getitem__(index[1:])
+                    for name in self.annot:
+                        new_stack.annot[name] = self.annot[name].__getitem__(index[1:])
                     new_stack.coord = self.coord.__getitem__(index)
                     return new_stack
             else:
                 new_stack = AtomArrayStack()
-                new_stack.chain_id = self.chain_id.__getitem__(index)
-                new_stack.res_id = self.res_id.__getitem__(index)
-                new_stack.res_name = self.res_name.__getitem__(index)
-                new_stack.atom_name = self.atom_name.__getitem__(index)
-                new_stack.hetero = self.hetero.__getitem__(index)
-                new_stack.coord = self.coord.__getitem__(index)
+                for name in self.annot:
+                    new_stack.annot[name] = self.annot[name].__getitem__(index)
+                    new_stack.coord = self.coord.__getitem__(index)
                 return new_stack
         except:
             raise IndexError("Invalid index")
@@ -765,13 +780,18 @@ def array(atoms):
     array : AtomArray
         The listed atoms as array.
     """
+    # Check if all atoms have the same annotation names
+    # Equality check requires sorting
+    names = sorted(atoms[0].annot.keys())
+    for atom in atoms:
+        if sorted(atom.annot.keys()) != names:
+            raise ValueError("The atoms do not share the"
+                             "same annotation categories")
+    # Add all atoms to AtomArray
     array = AtomArray(length=len(atoms))
     for i in range(len(atoms)):
-        array.chain_id[i] = atoms[i].chain_id
-        array.res_id[i] = atoms[i].res_id
-        array.res_name[i] = atoms[i].res_name
-        array.atom_name[i] = atoms[i].atom_name
-        array.hetero[i] = atoms[i].hetero
+        for name in names:
+            array.annot[name] = atoms.annot[name]
         array.coord[i] = atoms[i].coord
     return array
 
@@ -797,11 +817,8 @@ def stack(arrays):
             raise ValueError("The arrays atom annotations"
                              "do not fit to each other") 
     array_stack = AtomArrayStack()
-    array_stack.chain_id = arrays[0].chain_id
-    array_stack.res_id = arrays[0].res_id
-    array_stack.res_name = arrays[0].res_name
-    array_stack.atom_name = arrays[0].atom_name
-    array_stack.hetero = arrays[0].hetero
+    for name, annotation in arrays[0].annot.items():
+        array_stack.annot[name] = annotation
     coord_list = [array.coord for array in arrays] 
     array_stack.coord = np.stack(coord_list, axis=0)
     return array_stack
@@ -846,6 +863,7 @@ def to_array(model, insertion_code=""):
                     arr.res_id[i] = int(residue.id[1])
                     arr.res_name[i] = residue.get_resname()
                     arr.atom_name[i] = atom.get_fullname()
+                    arr.element[i] = atom.get_name().strip()[0]
                     arr.coord[i] = atom.get_coord()
                     i += 1
     return arr
@@ -882,6 +900,7 @@ def to_model(array, id=0):
         res_id = array.res_id[i]
         res_name = array.res_name[i]
         atom_name = array.atom_name[i]
+        element = array.element[i]
         coord = array.coord[i]
         # Try to access the chain entity that corresponds to this atom
         # if chain does not exist create chain
@@ -903,7 +922,7 @@ def to_model(array, id=0):
             atom_curr = res_curr[atom_name]
         except KeyError:
             atom_curr = Bio.PDB.Atom.Atom(atom_name, coord, 0, 1, " ",
-                                          atom_name, i+1, atom_name.strip()[0])
+                                          atom_name, i+1, element)
             res_curr.add(atom_curr)
     return model
 
