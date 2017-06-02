@@ -24,6 +24,27 @@ coordinates. Therefore the annotation arrays are represented as ndarrays of
 length *n*, while the coordinates are a (m x n x 3) ndarray.
 All types must not be subclassed.
 
+The following annotation categories are mandatory:
+
+=========  ===========  ===================   ================================
+Category   Type         Examples              Description
+=========  ===========  ===================   ================================
+chain_id   string (U1)  'A','B', ...          Polypeptide chain
+res_id     int          1,2,3, ...            Sequence position of residue
+res_name   string (U3)  'GLY','ALA', ...      Residue name
+atom_name  string (U4)  ' CA ',' N  ', ...    Atom name (whitespace sensitive)
+element    string (U1)  'C','O','N', ...      Chemical Element
+hetero     string (U5)  ' ','W','H_GLC', ...  Identifier for non AA residues
+=========  ===========  ===================   ================================
+
+These annotation categories correspond to `Entity` attributes in `Bio.PDB`. For
+all `Atom`, `AtomArray` and `AtomArrayStack` objects these annotations must be
+set, otherwise some functions will not work or errors will occur. Additionally
+to these annotations, an arbitrary amount of annotation categories can be added (Use
+`add_annotation()` for this). The annotation arrays can be accessed either via
+the corresponding dictionary (e.g. ``array.annot["res_id"]``) or directly
+(e.g. ``array.res_id``).
+
 For each type, the attributes can be accessed directly. Both `AtomArray` and
 `AtomArrayStack` support `numpy` style indexing, the index is propagated to
 each attribute. If a single integer is used as index, an object with one
@@ -62,16 +83,32 @@ class _AtomAnnotationList(object):
         self.element = np.zeros(length, dtype="U1")
         
     def add_annotation(self, annotation):
+        """
+        Adds an annotation category
+        
+        Parameters
+        ----------
+        annotation : string
+            The annotation category to be added.
+        """
         if annotation not in self.annot:
             self.annot[annotation] = None
     
     def __getattr__(self, attr):
+        """
+        If the attribute is an annotation, the annotation is returned from
+        the dictionary.
+        """
         if attr in self.annot:
             return self.annot[attr]
         else:
             raise AttributeError("'" + "attr" + "' is not a valid atom annotation")
         
     def __setattr__(self, attr, value):
+        """
+        If the attribute is an annotation, the `value` is saved to the
+        annotation in the dictionary.
+        """
         # First condition is required, since call of the second would result in
         # indefinite calls of __getattr__
         if attr == "annot":
@@ -237,24 +274,12 @@ class Atom(object):
     """
     A representation of a single atom.
     
-    All attributes correspond to `Entity` attributes in `Bio.PDB`.
-    
     Attributes
     ----------
-    chain_id : string {'A','B',...}
-        A single character representing the polypeptide chain
-    res_id : int
-        Integer value identifying the sequence position of the residue
-    res_name : string {'GLY','ALA',...}
-        Three character string representing the residue name
-    atom_name : string {' CA ',' N  ',...}
-        Four character string representing the atom name.
-        Pay attention to the whitespaces
-    element: string {'C','O','N',...}
-        A single character representing the element.
-    hetero : string {' ','W','H_GLC',...}
-        Up to 5 character string, indicating in which hetero residue the
-        atom is in. If the residue is a standard amino acid the value is `' '`.
+    annot : dict
+        The dictionary containing all annotations.
+    coord : ndarray(dtype=float)
+        ndarray containing the x, y and z coordinate of the atom.
     """
     
     def __init__(self, coord, **kwargs):
@@ -311,20 +336,8 @@ class AtomArray(_AtomAnnotationList):
     
     Attributes
     ----------
-    chain_id : ndarray(dtype="U1") {'A','B',...}
-        A single character representing the polypeptide chain
-    res_id : ndarray(dtype=int)
-        Integer value identifying the sequence position of the residue
-    res_name : ndarray(dtype="U3") {'GLY','ALA',...}
-        Three character string representing the residue name
-    atom_name : ndarray(dtype="U4") {' CA ',' N  ',...}
-        Four character string representing the atom name.
-        Pay attention to the whitespaces
-    element: string {'C','O','N',...}
-        A single character representing the element.
-    hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
-        Up to 5 character string, indicating in which hetero residue the
-        atom is in. If the residue is a standard amino acid the value is `' '`.
+    annot : dict
+        The dictionary containing all annotation arrays.
     coord : ndarray(dtype=float)
         (n x 3) ndarray containing the x, y and z coordinate of the atoms.
     """
@@ -536,20 +549,8 @@ class AtomArrayStack(_AtomAnnotationList):
     
     Attributes
     ----------
-    chain_id : ndarray(dtype="U1") {'A','B',...}
-        A single character representing the polypeptide chain
-    res_id : ndarray(dtype=int)
-        Integer value identifying the sequence position of the residue
-    res_name : ndarray(dtype="U3") {'GLY','ALA',...}
-        Three character string representing the residue name
-    atom_name : ndarray(dtype="U4") {' CA ',' N  ',...}
-        Four character string representing the atom name.
-        Pay attention to the whitespaces
-    element: string {'C','O','N',...}
-        A single character representing the element.
-    hetero : ndarray(dtype="U5") {' ','W','H_GLC',...}
-        Up to 5 character string, indicating in which hetero residue the
-        atom is in. If the residue is a standard amino acid the value is `' '`.
+    annot : dict
+        The dictionary containing all annotation arrays.
     coord : ndarray(dtype=float)
         (m x n x 3) ndarray containing the x, y and z coordinate of the atoms.
     """
