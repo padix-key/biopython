@@ -102,7 +102,8 @@ class _AtomAnnotationList(object):
         if attr in self.annot:
             return self.annot[attr]
         else:
-            raise AttributeError("'" + "attr" + "' is not a valid atom annotation")
+            raise AttributeError("'" + attr
+                                 + "' is not a valid atom annotation")
         
     def __setattr__(self, attr, value):
         """
@@ -295,7 +296,7 @@ class Atom(object):
             # kwargs are given directly as dictionary
             kwargs = kwargs["kwargs"]
         for name, annotation in kwargs.items():
-            annot[name] = annotation
+            self.annot[name] = annotation
         coord = np.array(coord, dtype=float)
         # Check if coord contains x,y and z coordinates
         if coord.shape != (3,):
@@ -306,7 +307,8 @@ class Atom(object):
         if attr in self.annot:
             return self.annot[attr]
         else:
-            raise AttributeError("'" + "attr" + "' is not a valid atom annotation")
+            raise AttributeError("'" + "attr"
+                                 + "' is not a valid atom annotation")
         
     def __setattr__(self, attr, value):
         # First condition is required, since call of the second would result in
@@ -404,7 +406,7 @@ class AtomArray(_AtomAnnotationList):
             Atom at position `index`. 
         """
         kwargs = {}
-        for name, annotation in self.annot:
+        for name, annotation in self.annot.items():
             kwargs[name] = annotation[index]
         return Atom(coord = self.coord[index], kwargs=kwargs)
     
@@ -442,7 +444,8 @@ class AtomArray(_AtomAnnotationList):
             else:
                 new_array = AtomArray()
                 for annotation in self.annot:
-                    new_array.annot[annotation] = self.annot[annotation].__getitem__(index)
+                    new_array.annot[annotation] = (self.annot[annotation]
+                                                      .__getitem__(index))
                 new_array.coord = self.coord.__getitem__(index)
                 return new_array
         except:
@@ -664,13 +667,15 @@ class AtomArrayStack(_AtomAnnotationList):
                 else:
                     new_stack = AtomArrayStack()
                     for name in self.annot:
-                        new_stack.annot[name] = self.annot[name].__getitem__(index[1:])
+                        new_stack.annot[name] = (self.annot[name]
+                                                    .__getitem__(index[1:]))
                     new_stack.coord = self.coord.__getitem__(index)
                     return new_stack
             else:
                 new_stack = AtomArrayStack()
                 for name in self.annot:
-                    new_stack.annot[name] = self.annot[name].__getitem__(index)
+                    new_stack.annot[name] = (self.annot[name]
+                                                .__getitem__(index))
                     new_stack.coord = self.coord.__getitem__(index)
                 return new_stack
         except:

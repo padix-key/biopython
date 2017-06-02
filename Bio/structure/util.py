@@ -43,3 +43,22 @@ def norm_vector(v):
         v /= factor[..., np.newaxis]
     else:
         v /= factor
+        
+
+def distance(v1,v2):
+    """
+    Calculate the distance between two position vectors
+    
+    Parameters
+    ----------
+    v1,v2 : ndarray
+        The arrays to calculate the product from.
+        The vectors are represented by the last axis.
+    
+    Returns
+    -------
+    product : float or ndarray
+        vector distance with the dimension of the input arrays reduced by 1
+    """
+    dif = v1 - v2
+    return np.sqrt((dif*dif).sum(axis=-1))

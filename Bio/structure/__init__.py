@@ -35,6 +35,7 @@ from .error import *
 
 from .geometry import *
 from .compare import *
+from .adjacency import *
 
 from .transform import *
 from .superimpose import *
