@@ -15,7 +15,7 @@ def superimpose(reference, subject, ca_only=True):
     """
     Superimpose structures on a reference structure.
     
-    The superimposition is performed using the Kabsch algorithm.
+    The superimposition is performed using the Kabsch algorithm [1]_ [2]_.
     
     Parameters
     ----------
@@ -59,6 +59,12 @@ def superimpose(reference, subject, ca_only=True):
     obtain the same size and annotation arrays. After superimposition the
     transformation can be applied on the original structure using
     `apply_superimposition()`.
+    
+    .. [1] W Kabsch, "A solution for the best rotation to relate two sets of
+       vectors." Acta Cryst, 32, 922-923 (1976).
+       
+    .. [2] W Kabsch, "A discussion of the solution for the best rotation to
+       relate two sets of vectors." Acta Cryst, 34, 827-828 (1978).
     """
     if type(reference) != AtomArray:
         raise ValueError("Reference must be AtomArray")
@@ -70,7 +76,8 @@ def superimpose(reference, subject, ca_only=True):
         fitted_subjects = []
         transformations = []
         for array in subject:
-            fitted_subject, transformation = _superimpose(reference, array, ca_only)
+            fitted_subject, transformation = _superimpose(reference,
+                                                          array, ca_only)
             fitted_subjects.append(fitted_subject)
             transformations.append(transformation)
         # Convert AtomArray list back to AtomArrayStack
