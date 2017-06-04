@@ -30,14 +30,18 @@ def sasa(array, **kwargs):
         probe_radius = 1.4
     
     if "atom_filter" in kwargs:
-        atom_filter = np.array(kwargs["filter"]).astype(bool)
+        # Filter for all atoms to calculate SASA for
+        sasa_filter = np.array(kwargs["filter"]).astype(bool)
     else:
-        atom_filter = np.ones(len(array), dtype=bool)
+        sasa_filter = np.ones(len(array), dtype=bool)
+    # Filter for all atoms that are considered for occlusion calculation
+    # sasa_filter is subfilter of occlusion_filter
+    occl_filter = np.ones(len(array), dtype=bool)
     
     # Remove water residues, since it is the solvent
     filter = (array.hetero != "W")
-    array = array[filter]
-    atom_filter = atom_filter[filter]
+    sasa_filter = sasa_filter & filter
+    occl_filter = occl_filter & filter
     if "ignore_ions" in kwargs:
         ignore_ions = np.array(kwargs["ignore_ions"])
     else:
@@ -72,17 +76,17 @@ def sasa(array, **kwargs):
                              "amount of elements")
     elif vdw_radii == "ProtOr":
         filter = (array.element != "H")
-        array = array[filter]
-        atom_filter = atom_filter[filter]
-        radii = np.zeros(len(array))
-        for i in range(len(radii)):
+        sasa_filter = sasa_filter & filter
+        occl_filter = occl_filter & filter
+        radii = np.full(len(array), np.nan)
+        for i in np.arange(len(radii))[occl_filter]:
             try:
                 radii[i] = _protor_radii[array.res_name[i]][array.atom_name[i]]
             except KeyError:
                 radii[i] = _protor_default
     elif vdw_radii == "Single":
-        radii = np.zeros(len(array))
-        for i in range(len(radii)):
+        radii = np.full(len(array), np.nan)
+        for i in np.arange(len(radii))[occl_filter]:
             radii[i] = _single_radii[array.element[i]]
     # Increase atom radii by probe size ("rolling probe")
     radii += probe_radius
@@ -90,20 +94,22 @@ def sasa(array, **kwargs):
     # Box size is as large as the maximum distance, 
     # where two atom can intersect.
     # Therefore intersecting atoms are always in the same or adjacent box.
-    adj_map = AdjacencyMap(array, np.max(radii)*2)
+    occl_array = array[occl_filter]
+    occl_radii = radii[occl_filter]
+    adj_map = AdjacencyMap(occl_array, np.max(occl_radii)*2)
     
     # Only calculate SASA for relevant atoms
     area_per_point = 4.0 * np.pi / point_number
-    sasa = np.full(len(array),np.nan)
-    for index in np.arange(len(array))[atom_filter]:
+    sasa = np.full(len(array), np.nan)
+    for index in np.arange(len(array))[sasa_filter]:
         coord = array.coord[index]
         radius = radii[index]
         # Transform the sphere dots to the current atom
         sphere_points_transformed = sphere_points * radius + coord
         # Get coordinates of adjacent atoms
         adj_indices = adj_map.get_atoms_in_box(coord)
-        adj_radii = radii[adj_indices]
-        adj_atom_coord = array.coord[adj_indices]
+        adj_radii = occl_radii[adj_indices]
+        adj_atom_coord = occl_array.coord[adj_indices]
         # Remove all atoms, where the distance to the relevant atom
         # is larger than the sum of the radii,
         # since those atoms do not touch
