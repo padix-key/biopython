@@ -36,7 +36,8 @@ def sasa(array, **kwargs):
         (default: True).
     point_number : int, optional
         The number of points in the mesh occupying each atom for SASA
-        calculation (default: 100).
+        calculation (default: 100). The SASA calculation time is proportional
+        to the amount of sphere points.
     point_distr: string or function, optional
         If a function is given, the function is used to calculate the point
         distribution for the mesh (the function must take `float` *n* as
