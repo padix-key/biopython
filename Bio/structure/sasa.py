@@ -28,17 +28,17 @@ def sasa(array, **kwargs):
         The protein model to calculate the SASA for.
     probe_radius : float, optional
         The VdW-radius of the solvent molecules (default: 1.4).
-    filter : ndarray(dtype=bool), optional
+    atom_filter : ndarray(dtype=bool), optional
         If this parameter is given, SASA is only calculated for the filtered
         atoms.
-    ignore_ions: bool, optional
+    ignore_ions : bool, optional
         If true, all monoatomic ions are removed before SASA calculation
         (default: True).
     point_number : int, optional
         The number of points in the mesh occupying each atom for SASA
         calculation (default: 100). The SASA calculation time is proportional
         to the amount of sphere points.
-    point_distr: string or function, optional
+    point_distr : string or function, optional
         If a function is given, the function is used to calculate the point
         distribution for the mesh (the function must take `float` *n* as
         parameter and return an *(n x 3)* `ndarray`). Alternatively a string
@@ -47,8 +47,7 @@ def sasa(array, **kwargs):
             - **Fibonacci** - Distribute points using a golden section spiral.
             
         By default *Fibonacci* is used.
-            
-    vdw_radii: string or ndarray(dtype=float), optional
+    vdw_radii : string or ndarray(dtype=float), optional
         Indicates the set of VdW radii to be used. If an `array`-length
         `ndarray` is given, each atom gets the radius at the corresponding
         index. Radii given for atoms that are not used in SASA calculation
@@ -65,7 +64,7 @@ def sasa(array, **kwargs):
     
     Returns
     -------
-    filter_array : 1-D ndarray(dtype=bool)
+    sasa : 1-D ndarray(dtype=bool)
         Atom-wise SASA. `NaN` for atoms where SASA has not been calculated
         (solvent atoms, hydrogen atoms (ProtOr), atoms not in `filter`).
     
@@ -87,7 +86,7 @@ def sasa(array, **kwargs):
     
     if "atom_filter" in kwargs:
         # Filter for all atoms to calculate SASA for
-        sasa_filter = np.array(kwargs["filter"]).astype(bool)
+        sasa_filter = np.array(kwargs["atom_filter"]).astype(bool)
     else:
         sasa_filter = np.ones(len(array), dtype=bool)
     # Filter for all atoms that are considered for occlusion calculation
@@ -191,6 +190,93 @@ def sasa(array, **kwargs):
         accessible_point_count = np.count_nonzero(min_sq_radius_distance > 0)
         sasa[index] = area_per_point * accessible_point_count * radius*radius
     return sasa
+
+    
+def surface_area(array, **kwargs):
+    """
+    Calculate the surface area for each atom in a structure.
+    
+    In contrast to `sasa()` this function calculates the total surface area for
+    each atom, independent of occlusion by other atoms.
+    
+    array : AtomArray
+        The protein model to calculate the SASA for.
+    probe_radius : float, optional
+        The VdW-radius of the solvent molecules (default: 1.4).
+    atom_filter : ndarray(dtype=bool), optional
+        If this parameter is given, area is only calculated for the filtered
+        atoms.
+    vdw_radii : string or ndarray(dtype=float), optional
+        Indicates the set of VdW radii to be used. If an `array`-length
+        `ndarray` is given, each atom gets the radius at the corresponding
+        index. Radii given for atoms that are not used in SASA calculation
+        (e.g. solvent atoms) can have arbitrary values (e.g. `NaN`).
+        If instead a `string` is given, one of the built-in sets is used:
+        
+            - **ProtOr** - A set, which does not require hydrogen atoms in
+              the model. Suitable for crystal structures. [2]_
+            - **Single** - A set, which uses a defines VdW radius for every
+              single atom, therefore hydrogen atoms are required in the
+              model (e.g. NMR elucidated structures). [3]_
+        By default *ProtOr* is used.
+        
+    Returns
+    -------
+    area : 1-D ndarray(dtype=bool)
+        Atom-wise surface area. `NaN` for atoms where surface area has not been
+        calculated (solvent atoms, hydrogen atoms (ProtOr), atoms not in
+        `filter`).
+    """
+    
+    if "probe_radius" in kwargs:
+        probe_radius = float(kwargs["probe_radius"])
+    else:
+        probe_radius = 1.4
+    
+    if "atom_filter" in kwargs:
+        # Filter for all atoms to calculate SASA for
+        atom_filter = np.array(kwargs["atom_filter"]).astype(bool)
+    else:
+        sasa_filter = np.ones(len(array), dtype=bool)
+    
+    # Remove water residues, since it is the solvent
+    filter = (array.hetero != "W")
+    atom_filter = atom_filter & filter
+    
+    if "vdw_radii" in kwargs:
+        vdw_radii = kwargs["vdw_radii"]
+    else:
+        vdw_radii = "ProtOr"
+    if isinstance(vdw_radii, np.ndarray):
+        radii = vdw_radii
+        if len(radii) != len(array):
+            raise ValueError("VdW radii array contains insufficient"
+                             "amount of elements")
+    elif vdw_radii == "ProtOr":
+        filter = (array.element != "H")
+        atom_filter = atom_filter & filter
+        radii = np.full(len(array), np.nan)
+        for i in np.arange(len(radii))[occl_filter]:
+            try:
+                radii[i] = _protor_radii[array.res_name[i]][array.atom_name[i]]
+            except KeyError:
+                radii[i] = _protor_default
+    elif vdw_radii == "Single":
+        radii = np.full(len(array), np.nan)
+        for i in np.arange(len(radii))[occl_filter]:
+            radii[i] = _single_radii[array.element[i]]
+    else:
+        raise KeyError("'" + str(vdw_radii) + 
+                       "' is not a valid radii set")
+    # Increase atom radii by probe size ("rolling probe")
+    radii += probe_radius
+    
+    surface_factor = 4*np.pi
+    area = np.full(len(array), np.nan)
+    for i in np.arange(len(array))[sasa_filter]:
+        radius = radii[i]
+        area[i] = surface_factor * radius*radius
+    return area
 
 
 def _create_fibonacci_points(n):
