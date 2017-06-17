@@ -192,7 +192,7 @@ def sasa(array, **kwargs):
     return sasa
 
     
-def surface_area(array, **kwargs):
+def total_surface(array, **kwargs):
     """
     Calculate the surface area for each atom in a structure.
     
@@ -237,7 +237,7 @@ def surface_area(array, **kwargs):
         # Filter for all atoms to calculate SASA for
         atom_filter = np.array(kwargs["atom_filter"]).astype(bool)
     else:
-        sasa_filter = np.ones(len(array), dtype=bool)
+        atom_filter = np.ones(len(array), dtype=bool)
     
     # Remove water residues, since it is the solvent
     filter = (array.hetero != "W")
@@ -256,7 +256,7 @@ def surface_area(array, **kwargs):
         filter = (array.element != "H")
         atom_filter = atom_filter & filter
         radii = np.full(len(array), np.nan)
-        for i in np.arange(len(radii))[occl_filter]:
+        for i in np.arange(len(radii))[atom_filter]:
             try:
                 radii[i] = _protor_radii[array.res_name[i]][array.atom_name[i]]
             except KeyError:
@@ -273,7 +273,7 @@ def surface_area(array, **kwargs):
     
     surface_factor = 4*np.pi
     area = np.full(len(array), np.nan)
-    for i in np.arange(len(array))[sasa_filter]:
+    for i in np.arange(len(array))[atom_filter]:
         radius = radii[i]
         area[i] = surface_factor * radius*radius
     return area
