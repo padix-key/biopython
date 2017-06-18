@@ -199,6 +199,8 @@ def total_surface(array, **kwargs):
     In contrast to `sasa()` this function calculates the total surface area for
     each atom, independent of occlusion by other atoms.
     
+    Parameters
+    ----------
     array : AtomArray
         The protein model to calculate the SASA for.
     probe_radius : float, optional
