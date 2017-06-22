@@ -3,6 +3,5 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
-"""
-A subpackage for reading and writing strcture related data.
-"""
+from .file import *
+from .convert import *

@@ -40,7 +40,7 @@ class PDBxFile(object):
                     has_multiline_values = False
                 
                 is_loop_in_line = _is_loop_start(line)
-                category_in_line = get_category_name(line)
+                category_in_line = _get_category_name(line)
                 if is_loop_in_line or (category_in_line != current_category
                                        and category_in_line is not None):
                     # Start of a new category
@@ -52,7 +52,7 @@ class PDBxFile(object):
                     if is_loop_in_line:
                         # In case of lines with "loop_" the category is in the
                         # next line
-                        category_in_line = get_category_name(self._lines[i+1])
+                        category_in_line = _get_category_name(self._lines[i+1])
                     is_loop = is_loop_in_line
                     current_category = category_in_line
                     start = i
@@ -167,7 +167,7 @@ class PDBxFile(object):
                 key = line.split(".")[1]
                 keys.append(key)
                 category_dict[key] = np.zeros(len(lines),
-                                              dtype="U64")
+                                              dtype="U32")
                 keys_length = len(keys)
             else:
                 values = shlex.split(line)
@@ -207,7 +207,7 @@ def _is_multi(line, is_loop):
         return line[0] in [";","'",'"']
 
 
-def get_category_name(line):
+def _get_category_name(line):
     if line[0] != "_":
         return None
     else:

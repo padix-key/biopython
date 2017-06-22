@@ -3,6 +3,13 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
-"""
-A subpackage for reading and writing strcture related data.
-"""
+import shlex
+import numpy as np
+from ... import Atom, AtomArray, AtomArrayStack    
+
+
+def get_structure(structure, insertion_code=""):
+    pass
+
+def set_structure(array):
+    pass
