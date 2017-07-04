@@ -29,12 +29,12 @@ The following annotation categories are mandatory:
 =========  ===========  ===================   ================================
 Category   Type         Examples              Description
 =========  ===========  ===================   ================================
-chain_id   string (U1)  'A','B', ...          Polypeptide chain
+seg_id     int          1,2,3, ...            Polypeptide chain
 res_id     int          1,2,3, ...            Sequence position of residue
 res_name   string (U3)  'GLY','ALA', ...      Residue name
-atom_name  string (U4)  ' CA ',' N  ', ...    Atom name (whitespace sensitive)
-element    string (U1)  'C','O','N', ...      Chemical Element
-hetero     string (U5)  ' ','W','H_GLC', ...  Identifier for non AA residues
+hetero     bool         True, False           Identifier for non AA residues
+atom_name  string (U6)  'CA','N', ...         Atom name
+element    string (U2)  'C','O','N', ...      Chemical Element
 =========  ===========  ===================   ================================
 
 These annotation categories correspond to `Entity` attributes in `Bio.PDB`. For
@@ -50,6 +50,8 @@ For each type, the attributes can be accessed directly. Both `AtomArray` and
 each attribute. If a single integer is used as index, an object with one
 dimension less is returned
 (`AtomArrayStack` -> `AtomArray`, `AtomArray` -> `Atom`).
+Do not expect a deep copy, when sclicing an `AtomArray` or `AtomArrayStack`.
+The attributes of the sliced object may still point to the original `ndarray`. 
 """
 
 import numpy as np
@@ -66,21 +68,20 @@ class _AtomAnnotationList(object):
         Create the annotation arrays
         """
         self.annot = {}
-        self.add_annotation("chain_id")
+        self.add_annotation("seg_id")
         self.add_annotation("res_id")
         self.add_annotation("res_name")
-        self.add_annotation("atom_name")
         self.add_annotation("hetero")
+        self.add_annotation("atom_name")
         self.add_annotation("element")
         if length == None:
             return
-        # string size based on reserved columns in *.pdb files
-        self.chain_id = np.zeros(length, dtype="U1")
+        self.chain_id = np.zeros(length, dtype=int)
         self.res_id = np.zeros(length, dtype=int)
         self.res_name = np.zeros(length, dtype="U3")
-        self.atom_name = np.zeros(length, dtype="U4")
-        self.hetero = np.zeros(length, dtype="U5")
-        self.element = np.zeros(length, dtype="U1")
+        self.hetero = np.zeros(length, dtype=bool)
+        self.atom_name = np.zeros(length, dtype="U6")
+        self.element = np.zeros(length, dtype="U2")
         
     def add_annotation(self, annotation):
         """
@@ -118,45 +119,7 @@ class _AtomAnnotationList(object):
             self.annot[attr] = value
         else:
             super().__setattr__(attr, value)
-        
-        
-        
-    def seq_length(self, chain_id="all"):
-        """
-        Calculate the amount of residues in a polypeptide chain.
-        
-        This is a quite expensive operation, since the function iterates
-        through the `res_id` annotation array The amount of residues is
-        determined by the amount of times a new a new `res_id` is found.
-        Hetero residues are also taken into account.
-        
-        Parameters
-        ----------
-        chain_id : string, optional
-            The polypeptide chain id, where the amount of residues is
-            determined. The default value is `all`, where no filtering is
-            applied.
-        
-        Returns
-        -------
-        length : int
-            number of residues in the given chain.
-        """
-        if chain_id != "all":
-            res_id_by_chain = self.res_id[self.chain_id == chain_id]
-        else:
-            res_id_by_chain = self.res_id
-        # Count the number of times a new res_id is found
-        last_found_id = -1
-        id_count = 0
-        i = 0
-        while i < len(res_id_by_chain):
-            found_id = res_id_by_chain[i]
-            if last_found_id != found_id:
-                last_found_id = found_id
-                id_count += 1
-            i += 1
-        return id_count
+
         
     def check_integrity(self):
         """
@@ -227,12 +190,12 @@ class _AtomAnnotationList(object):
         if filter == "all":
             return np.ones(len(self), dtype=bool)
         elif filter == "backbone":
-            return [((self.atom_name == " N  ") |
-                   (self.atom_name == " CA ") |
-                   (self.atom_name == " C  ")) &
-                   (self.hetero == " ")]
+            return [((self.atom_name == "N") |
+                   (self.atom_name == "CA") |
+                   (self.atom_name == "C")) &
+                   (self.hetero == False)]
         elif filter == "hetero":
-            return self.hetero != " "
+            return self.hetero == True
         elif "E=" in filter:
             element = filter[-1]
             return np.array(
@@ -664,6 +627,9 @@ class AtomArrayStack(_AtomAnnotationList):
                 if type(index[0]) == int and type(index[1]) == int:
                     array = self.get_array(index[0])
                     return array.get_atom(index[1])
+                elif type(index[0]) == int:
+                    array = self.get_array(index[0])
+                    return array.__getitem__(index[1:])
                 else:
                     new_stack = AtomArrayStack()
                     for name in self.annot:
@@ -674,9 +640,8 @@ class AtomArrayStack(_AtomAnnotationList):
             else:
                 new_stack = AtomArrayStack()
                 for name in self.annot:
-                    new_stack.annot[name] = (self.annot[name]
-                                                .__getitem__(index))
-                    new_stack.coord = self.coord.__getitem__(index)
+                    new_stack.annot[name] = (self.annot[name])
+                new_stack.coord = self.coord.__getitem__(index)
                 return new_stack
         except:
             raise IndexError("Invalid index")
@@ -768,7 +733,7 @@ class AtomArrayStack(_AtomAnnotationList):
         """
         string = ""
         for i, array in enumerate(self):
-            string += "Model: " + str(i) + "\n"
+            string += "Model " + str(i+1) + "\n"
             string += str(array) + "\n" + "\n"
         return string
 
