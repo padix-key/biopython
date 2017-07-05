@@ -29,7 +29,7 @@ The following annotation categories are mandatory:
 =========  ===========  ===================   ================================
 Category   Type         Examples              Description
 =========  ===========  ===================   ================================
-seg_id     int          1,2,3, ...            Polypeptide chain
+chain_id   string (U3)  'A','S','AB', ...     Polypeptide chain
 res_id     int          1,2,3, ...            Sequence position of residue
 res_name   string (U3)  'GLY','ALA', ...      Residue name
 hetero     bool         True, False           Identifier for non AA residues
@@ -68,7 +68,7 @@ class _AtomAnnotationList(object):
         Create the annotation arrays
         """
         self.annot = {}
-        self.add_annotation("seg_id")
+        self.add_annotation("chain_id")
         self.add_annotation("res_id")
         self.add_annotation("res_name")
         self.add_annotation("hetero")
@@ -76,7 +76,7 @@ class _AtomAnnotationList(object):
         self.add_annotation("element")
         if length == None:
             return
-        self.chain_id = np.zeros(length, dtype=int)
+        self.chain_id = np.zeros(length, dtype="U3")
         self.res_id = np.zeros(length, dtype=int)
         self.res_name = np.zeros(length, dtype="U3")
         self.hetero = np.zeros(length, dtype=bool)

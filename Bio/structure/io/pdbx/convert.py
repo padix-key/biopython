@@ -5,7 +5,8 @@
 
 import numpy as np
 from ... import BadStructureError
-from ... import Atom, AtomArray, AtomArrayStack    
+from ... import Atom, AtomArray, AtomArrayStack
+from collections import OrderedDict
 
 
 def get_structure(pdbx_file, data_block=None, insertion_code=None,
@@ -52,7 +53,8 @@ def get_structure(pdbx_file, data_block=None, insertion_code=None,
         
 
 def _fill_annotations(array, model_dict, extra_fields):
-    array.annot["seg_id"] = model_dict["label_entity_id"].astype(int)
+    array.annot["chain_id"] = np.array([-1 if e in [".","?"] else int(e)
+                                      for e in model_dict["auth_asym_id"]])
     array.annot["res_id"] = np.array([-1 if e in [".","?"] else int(e)
                                       for e in model_dict["label_seq_id"]])
     array.annot["res_name"] = model_dict["label_comp_id"].astype("U3")
@@ -106,8 +108,6 @@ def _get_model_dict(atom_site_dict, model):
 
 
 def set_structure(pdbx_file, array):
-    pass
-
-
-def set_coord(pdbx_file, coord):
-    pass
+    atom_site_dict = OrderedDict()
+    for key in atom_site_dict.keys():
+        print(key + ": " + atom_site_dict[key])
