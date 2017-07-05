@@ -21,7 +21,7 @@ def get_structure(pdbx_file, data_block=None, insertion_code=None,
         model_dict = _get_model_dict(atom_site_dict, 1)
         _fill_annotations(stack, model_dict, extra_fields)
         model_count = int(models[-1])
-        model_length = len(stack.seg_id)
+        model_length = len(stack.chain_id)
         # Check if each model has the same amount of atoms
         # If not, raise exception
         if model_length * model_count != len(models):
@@ -41,7 +41,7 @@ def get_structure(pdbx_file, data_block=None, insertion_code=None,
         array = AtomArray()
         model_dict = _get_model_dict(atom_site_dict, model)
         _fill_annotations(array, model_dict, extra_fields)
-        model_length = len(array.seg_id)
+        model_length = len(array.chain_id)
         model_filter = (models == str(model))
         array.coord = np.zeros((model_length, 3), dtype=float)
         array.coord[:,0]= atom_site_dict["Cartn_x"][model_filter].astype(float)
@@ -53,8 +53,7 @@ def get_structure(pdbx_file, data_block=None, insertion_code=None,
         
 
 def _fill_annotations(array, model_dict, extra_fields):
-    array.annot["chain_id"] = np.array([-1 if e in [".","?"] else int(e)
-                                      for e in model_dict["auth_asym_id"]])
+    array.annot["chain_id"] = model_dict["auth_asym_id"].astype("U3")
     array.annot["res_id"] = np.array([-1 if e in [".","?"] else int(e)
                                       for e in model_dict["label_seq_id"]])
     array.annot["res_name"] = model_dict["label_comp_id"].astype("U3")

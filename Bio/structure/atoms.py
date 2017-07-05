@@ -290,7 +290,7 @@ class Atom(object):
         string = ""
         for value in self.annot.values():
             string += str(value) + "\t"
-        return string + "\t" + str(self.coord)
+        return string + str(self.coord)
 
     
 class AtomArray(_AtomAnnotationList):
