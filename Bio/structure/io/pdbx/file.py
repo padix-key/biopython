@@ -82,23 +82,31 @@ class PDBxFile(object):
         is_multilined = category_info[3]
         
         if is_multilined:
+            # Convert multiline values into singleline values
             pre_lines = [line.strip() for line in self._lines[start:stop]
                          if not _is_empty(line) and not _is_loop_start(line)]
             lines = (len(pre_lines)) * [None]
+            # lines index
             k = 0
+            # pre_lines index
             i = 0
             while i < len(pre_lines):
                 if pre_lines[i][0] == ";":
+                    # multiline values
                     lines[k-1] += " '" + pre_lines[i][1:]
                     j = i+1
                     while pre_lines[j] != ";":
-                        lines[k-1] += " " + pre_lines[j]
+                        lines[k-1] += pre_lines[j]
+                        j += 1
                     lines[k-1] += "'"
                     i = j+1
                 elif not is_loop and pre_lines[i][0] in ["'",'"']:
+                    # singleline values where value is in the line
+                    # after the corresponding key
                     lines[k-1] += " " + pre_lines[i]
                     i += 1
                 else:    
+                    # normal singleline value in the same row as the key
                     lines[k] = pre_lines[i]
                     i += 1
                     k += 1
@@ -160,30 +168,32 @@ class PDBxFile(object):
     def _process_looped(self, lines):
         category_dict = {}
         keys = []
+        # Array index
         i = 0
+        # Dictionary key index
+        j = 0
         for line in lines:
             in_key_lines = (line[0] == "_")
             if in_key_lines:
                 key = line.split(".")[1]
                 keys.append(key)
+                # pessimistic size allocation
+                # numpy array filled with strings
                 category_dict[key] = np.zeros(len(lines),
-                                              dtype="U32")
+                                              dtype=object)
                 keys_length = len(keys)
             else:
-                values = shlex.split(line)
-                j = 0
-                while j < keys_length:
-                    category_dict[keys[j]][i] = values[j]
+                for value in shlex.split(line):
+                    category_dict[keys[j]][i] = value
                     j += 1
-                i += 1
+                    if j == keys_length:
+                        # If all keys have been filled with a value,
+                        # restart with first key with incremented index
+                        j = 0
+                        i += 1
         for key in category_dict.keys():
+            # trim to correct size
             category_dict[key] = category_dict[key][:i]
-        return category_dict
-    
-    
-    def _process_looped_multilined(self, lines):
-        raise NotImplementedError()
-        category_dict = {}
         return category_dict
 
 def _is_empty(line):

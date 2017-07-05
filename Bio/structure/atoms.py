@@ -40,9 +40,9 @@ element    string (U2)  'C','O','N', ...      Chemical Element
 These annotation categories correspond to `Entity` attributes in `Bio.PDB`. For
 all `Atom`, `AtomArray` and `AtomArrayStack` objects these annotations must be
 set, otherwise some functions will not work or errors will occur. Additionally
-to these annotations, an arbitrary amount of annotation categories can be added (Use
-`add_annotation()` for this). The annotation arrays can be accessed either via
-the corresponding dictionary (e.g. ``array.annot["res_id"]``) or directly
+to these annotations, an arbitrary amount of annotation categories can be added
+(Use `add_annotation()` for this). The annotation arrays can be accessed either
+via the corresponding dictionary (e.g. ``array.annot["res_id"]``) or directly
 (e.g. ``array.res_id``).
 
 For each type, the attributes can be accessed directly. Both `AtomArray` and
