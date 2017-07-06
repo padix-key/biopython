@@ -9,16 +9,17 @@ import numpy as np
 class PDBxFile(object):
     
     def __init__(self):
-        pass
+        self._lines = []
+        # This dictionary saves the PDBx category names,
+        # together with its line position in the file
+        # and the data_block it is in
+        self._categories = {}
     
     
     def read(self, file_name):
         with open(file_name, "r") as f:
             str_data = f.read()
         self._lines = str_data.split("\n")
-        # This dictionary saves the PDBx category names,
-        # together with its line position in the file
-        self._data_blocks = {}
         
         current_data_block = ""
         current_category = None
@@ -31,7 +32,7 @@ class PDBxFile(object):
             if not _is_empty(line):
                 data_block_name = _data_block_name(line)
                 if data_block_name is not None:
-                    data_block = self._add_data_block(data_block_name)
+                    data_block = data_block_name
                     # If new data block begins, reset category data
                     current_category = None
                     start = -1
@@ -71,15 +72,20 @@ class PDBxFile(object):
     
     
     def get_block_names(self):
-        return list(self._data_blocks.keys())
+        blocks = []
+        for category_tuple in self._categories.keys():
+            block = category_tuple[0]
+            if block not in blocks:
+                blocks.append(block)
+        return blocks
     
     
     def get_category(self, block, category):
-        category_info = self._data_blocks[block][category]
-        start = category_info[0]
-        stop = category_info[1]
-        is_loop = category_info[2]
-        is_multilined = category_info[3]
+        category_info = self._categories[(block, category)]
+        start = category_info["start"]
+        stop = category_info["stop"]
+        is_loop = category_info["loop"]
+        is_multilined = category_info["multiline"]
         
         if is_multilined:
             # Convert multiline values into singleline values
@@ -127,23 +133,86 @@ class PDBxFile(object):
         return category_dict
             
     
-    def set_category(self, block, category, data):
-        raise NotImplementedError()
-    
+    def set_category(self, block, category, category_dict):
+        if isinstance(list(category_dict.values())[0], np.ndarray):
+            is_looped = True
+        else:
+            is_looped = False
+        
+        if is_looped:
+            key_lines = ["_" + category + "." + key
+                         for key in category_dict.keys()]
+            value_arr = list(category_dict.values())
+            col_lens = np.zeros(len(value_arr), dtype=int)
+            for i, column in enumerate(value_arr):
+                col_len = 0
+                for value in column:
+                    if len(value) > col_len:
+                        col_len = len(value)
+                col_lens[i] = col_len+1
+            arr_len = len(value_arr[0])
+            value_lines = [""] * arr_len
+            for i in range(arr_len):
+                for j, arr in enumerate(value_arr):
+                    value_lines[i] += arr[i] + " "*(col_lens[j] - len(arr[i]))
+            new_lines = ["loop_"] + key_lines + value_lines
+            
+        else:
+            # For better readability not only one space is inserted after each
+            # key, but as much spaces that every value starts at the same
+            # position in the line
+            max_len = 0
+            for key in category_dict.keys():
+                if len(key) > max_len:
+                    max_len = len(key)
+            # "+3" Because of three whitespace chars after longest key
+            req_len = max_len + 3
+            new_lines = ["_" + category + "." + key
+                         + " " * (req_len-len(key)) + value
+                         for key, value in category_dict.items()]
+            
+        # A command line is set after every category
+        new_lines += ["#"]
+        
+        if (block,category) in self._categories:
+            category_info = self._categories[(block, category)]
+            # category_start is insertion point of new lines
+            category_start = category_info["start"]
+            category_stop = category_info["stop"]
+            # difference between number of lines of the old and new category
+            len_diff = len(new_lines) - (category_stop-category_start)
+            # remove old category content
+            del self._lines[category_start : category_stop]
+            # insert new lines at category start
+            self._lines[category_start:category_start] = new_lines
+            # update category info
+            category_info["start"] = category_start
+            category_info["stop"] = category_start + len(new_lines)
+            # When writing a category no multiline values are used
+            category_info["multiline"] = False
+            category_info["loop"] = is_looped
+        elif block in list(self._categories.keys())[0]:
+            pass
+        elif category in list(self._categories.keys())[1]:
+            pass
+        # Update start and stop of all categories appearing after the
+        # changed/added category
+        for category_info in self._categories.values():
+            if category_info["start"] > category_start:
+                category_info["start"] += len_diff
+                category_info["stop"] += len_diff
+                
     
     def write(self, file_name):
-        raise NotImplementedError()
+        with open(file_name, "w") as f:
+            f.writelines([line+"\n" for line in self._lines])
+        
     
     
     def copy(self):
         PDBxFile = PDBxFile()
         PDBxFile._lines = copy.deepcopy(self._lines)
-        PDBxFile._data_blocks = copy.deepcopy(self._data_blocks)
-    
-    
-    def _add_data_block(self, block_name):
-        self._data_blocks[block_name] = {}
-        return self._data_blocks[block_name]
+        PDBxFile._categories = copy.deepcopy(self._categories)
     
     
     def _add_category(self, block, category_name,
@@ -152,7 +221,11 @@ class PDBxFile(object):
         # the current_category is None
         # This is checked before adding an entry
         if category_name is not None:
-            block[category_name] = (start, stop, is_loop, is_multilined)
+            self._categories[
+                (block, category_name)] = {"start"     : start,
+                                           "stop"      : stop,
+                                           "loop"      : is_loop,
+                                           "multiline" : is_multilined}
     
             
     def _process_singlevalued(self, lines):
@@ -168,9 +241,9 @@ class PDBxFile(object):
     def _process_looped(self, lines):
         category_dict = {}
         keys = []
-        # Array index
+        # array index
         i = 0
-        # Dictionary key index
+        # dictionary key index
         j = 0
         for line in lines:
             in_key_lines = (line[0] == "_")

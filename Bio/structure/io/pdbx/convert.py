@@ -117,8 +117,7 @@ def set_structure(pdbx_file, array, data_block=None):
     atom_site_dict = OrderedDict()
     atom_site_dict["group_PDB"] = np.array(["ATOM" if e == False else "HETATM"
                                             for e in array.hetero])
-    atom_site_dict["id"] = (np.arange(1,array.annotation_length()+1)
-                           .astype("U6"))
+    atom_site_dict["id"] = None
     atom_site_dict["type_symbol"] = np.copy(array.element)
     atom_site_dict["label_atom_id"] = np.copy(array.atom_name)
     atom_site_dict["label_alt_id"] = np.full(array.annotation_length(), ".")
@@ -136,9 +135,11 @@ def set_structure(pdbx_file, array, data_block=None):
         atom_site_dict["Cartn_x"] = coord[:,0].astype(str)
         atom_site_dict["Cartn_y"] = coord[:,1].astype(str)
         atom_site_dict["Cartn_z"] = coord[:,2].astype(str)
-        models = np.repeat(np.arange(1, len(array)+1),
+        models = np.repeat(np.arange(1, len(coord)+1).astype(str),
                            repeats=array.annotation_length())
         atom_site_dict["pdbx_PDB_model_num"] = models
+        atom_site_dict["id"] = (np.arange(1,array.annotation_length()+1)
+                           .astype("U6"))
     elif type(array) == AtomArray:
         atom_site_dict["Cartn_x"] = array.coord[:,0].astype(str)
         atom_site_dict["Cartn_y"] = array.coord[:,1].astype(str)
@@ -146,6 +147,8 @@ def set_structure(pdbx_file, array, data_block=None):
         atom_site_dict["pdbx_PDB_model_num"] = np.full(len(array), "1")
     else:
         raise ValueError("Structure must be AtomArray or AtomArrayStack")
+    atom_site_dict["id"] = (np.arange(1,len(atom_site_dict["group_PDB"])+1)
+                           .astype("U6"))
     if data_block is None:
         data_block = pdbx_file.get_block_names()[0]
     pdbx_file.set_category(data_block, "atom_site", atom_site_dict)
