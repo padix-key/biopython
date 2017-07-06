@@ -106,7 +106,7 @@ def _get_model_dict(atom_site_dict, model):
     return model_dict
 
 
-def set_structure(pdbx_file, array):
+def set_structure(pdbx_file, array, data_block=None):
     """
     if type(array) == AtomArrayStack:
         models = array
@@ -124,7 +124,7 @@ def set_structure(pdbx_file, array):
     atom_site_dict["label_alt_id"] = np.full(array.annotation_length(), ".")
     atom_site_dict["label_comp_id"] = np.copy(array.res_name)
     atom_site_dict["label_asym_id"] = np.copy(array.chain_id)
-    atom_site_dict["label_entity_id"] = ["None"]
+    atom_site_dict["label_entity_id"] = _determine_entity_id(array.chain_id)
     atom_site_dict["label_seq_id"] = np.array(["." if e == -1 else str(e)
                                             for e in array.res_id])
     atom_site_dict["auth_asym_id"] = np.copy(array.chain_id)
@@ -133,19 +133,35 @@ def set_structure(pdbx_file, array):
             atom_site_dict[key] = np.tile(value, reps=len(array))
         coord = np.reshape(array.coord,
                            (len(array)*array.annotation_length(), 3))
-        atom_site_dict["Cartn_x"] = coord[0].astype(str)
-        atom_site_dict["Cartn_x"] = coord[1].astype(str)
-        atom_site_dict["Cartn_x"] = coord[2].astype(str)
+        atom_site_dict["Cartn_x"] = coord[:,0].astype(str)
+        atom_site_dict["Cartn_y"] = coord[:,1].astype(str)
+        atom_site_dict["Cartn_z"] = coord[:,2].astype(str)
         models = np.repeat(np.arange(1, len(array)+1),
                            repeats=array.annotation_length())
         atom_site_dict["pdbx_PDB_model_num"] = models
     elif type(array) == AtomArray:
-        atom_site_dict["Cartn_x"] = array.coord[0].astype(str)
-        atom_site_dict["Cartn_x"] = array.coord[1].astype(str)
-        atom_site_dict["Cartn_x"] = array.coord[2].astype(str)
+        atom_site_dict["Cartn_x"] = array.coord[:,0].astype(str)
+        atom_site_dict["Cartn_y"] = array.coord[:,1].astype(str)
+        atom_site_dict["Cartn_z"] = array.coord[:,2].astype(str)
         atom_site_dict["pdbx_PDB_model_num"] = np.full(len(array), "1")
     else:
         raise ValueError("Structure must be AtomArray or AtomArrayStack")
-    
-    for key in atom_site_dict.keys():
-        print(str(key) + ": " + str(atom_site_dict[key]))
+    if data_block is None:
+        data_block = pdbx_file.get_block_names()[0]
+    pdbx_file.set_category(data_block, "atom_site", atom_site_dict)
+
+
+def _determine_entity_id(chain_id):
+    entity_id = np.zeros(len(chain_id), dtype=int)
+    # Dictionary that translates chain_id to entity_id
+    id_translation = {}
+    id = 1
+    for i in range(len(chain_id)):
+        try:
+            entity_id[i] = id_translation[chain_id[i]]
+        except:
+            # chain_id is not in dictionary -> new entry
+            id_translation[chain_id[i]] = id
+            entity_id[i] = id_translation[chain_id[i]]
+            id += 1
+    return entity_id.astype(str)
