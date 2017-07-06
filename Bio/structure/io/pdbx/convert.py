@@ -11,9 +11,7 @@ from collections import OrderedDict
 
 def get_structure(pdbx_file, data_block=None, insertion_code=None,
                   altloc=None, model=None, extra_fields=None):
-    if data_block is None:
-        data_block = pdbx_file.get_block_names()[0]
-    atom_site_dict = pdbx_file.get_category(data_block, "atom_site")
+    atom_site_dict = pdbx_file.get_category("atom_site", data_block)
     models = atom_site_dict["pdbx_PDB_model_num"]
     if model is None:
         stack = AtomArrayStack()
@@ -151,7 +149,7 @@ def set_structure(pdbx_file, array, data_block=None):
                            .astype("U6"))
     if data_block is None:
         data_block = pdbx_file.get_block_names()[0]
-    pdbx_file.set_category(data_block, "atom_site", atom_site_dict)
+    pdbx_file.set_category("atom_site", atom_site_dict, data_block)
 
 
 def _determine_entity_id(chain_id):

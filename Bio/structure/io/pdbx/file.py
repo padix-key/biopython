@@ -83,7 +83,9 @@ class PDBxFile(object):
         return blocks
     
     
-    def get_category(self, block, category):
+    def get_category(self, category, block=None):
+        if block is None:
+            block = self.get_block_names()[0]
         category_info = self._categories[(block, category)]
         start = category_info["start"]
         stop = category_info["stop"]
@@ -133,7 +135,10 @@ class PDBxFile(object):
         return category_dict
             
     
-    def set_category(self, block, category, category_dict):
+    def set_category(self, category, category_dict, block=None):
+        if block is None:
+            block = self.get_block_names()[0]
+            
         if isinstance(list(category_dict.values())[0], np.ndarray):
             is_looped = True
         else:
