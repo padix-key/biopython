@@ -20,6 +20,9 @@ class PDBxFile(object):
         with open(file_name, "r") as f:
             str_data = f.read()
         self._lines = str_data.split("\n")
+        # Remove emptyline at then end of file, if present
+        if self._lines[-1] == "":
+            del self._lines[-1]
         
         current_data_block = ""
         current_category = None
@@ -107,12 +110,12 @@ class PDBxFile(object):
                     lines[k-1] += "'"
                     i = j+1
                 elif not is_loop and pre_lines[i][0] in ["'",'"']:
-                    # singleline values where value is in the line
+                    # Singleline values where value is in the line
                     # after the corresponding key
                     lines[k-1] += " " + pre_lines[i]
                     i += 1
                 else:    
-                    # normal singleline value in the same row as the key
+                    # Normal singleline value in the same row as the key
                     lines[k] = pre_lines[i]
                     i += 1
                     k += 1
@@ -123,10 +126,7 @@ class PDBxFile(object):
                      if not _is_empty(line) and not _is_loop_start(line)]
         
         if is_loop:
-            if is_multilined:
-                category_dict = self._process_looped_multilined(lines)
-            else:
-                category_dict = self._process_looped(lines)
+            category_dict = self._process_looped(lines)
         else:
             category_dict = self._process_singlevalued(lines)
         
@@ -143,12 +143,16 @@ class PDBxFile(object):
             key_lines = ["_" + category + "." + key
                          for key in category_dict.keys()]
             value_arr = list(category_dict.values())
+            # Array containing the number of characters + whitespace
+            # of each column 
             col_lens = np.zeros(len(value_arr), dtype=int)
             for i, column in enumerate(value_arr):
                 col_len = 0
                 for value in column:
                     if len(value) > col_len:
                         col_len = len(value)
+                # Length of column is max value length 
+                # +1 whitespace character as separator 
                 col_lens[i] = col_len+1
             arr_len = len(value_arr[0])
             value_lines = [""] * arr_len
@@ -175,26 +179,56 @@ class PDBxFile(object):
         new_lines += ["#"]
         
         if (block,category) in self._categories:
+            # Category already exists in data block
             category_info = self._categories[(block, category)]
-            # category_start is insertion point of new lines
-            category_start = category_info["start"]
-            category_stop = category_info["stop"]
-            # difference between number of lines of the old and new category
-            len_diff = len(new_lines) - (category_stop-category_start)
-            # remove old category content
-            del self._lines[category_start : category_stop]
-            # insert new lines at category start
+            # Insertion point of new lines
+            old_category_start = category_info["start"]
+            old_category_stop = category_info["stop"]
+            category_start = old_category_start 
+            # Difference between number of lines of the old and new category
+            len_diff = len(new_lines) - (old_category_stop-old_category_start)
+            # Remove old category content
+            del self._lines[old_category_start : old_category_stop]
+            # Insert new lines at category start
             self._lines[category_start:category_start] = new_lines
-            # update category info
+            # Update category info
             category_info["start"] = category_start
             category_info["stop"] = category_start + len(new_lines)
             # When writing a category no multiline values are used
             category_info["multiline"] = False
             category_info["loop"] = is_looped
-        elif block in list(self._categories.keys())[0]:
-            pass
-        elif category in list(self._categories.keys())[1]:
-            pass
+        elif block in self.get_block_names():
+            # Data block exists but not the category
+            # Find last category in the block
+            # and set start of new category to stop of last category
+            last_stop = 0
+            for category_tuple, category_info in self._categories.items():
+                if block == category_tuple[0]:
+                    if last_stop < category_info["stop"]:
+                        last_stop = category_info["stop"]
+            category_start = last_stop
+            category_stop = category_start + len(new_lines)
+            len_diff = len(new_lines)
+            self._lines[category_start:category_start] = new_lines
+            self._add_category(block, category, category_start, category_stop,
+                               is_looped, is_multilined=False)
+        else:
+            # The data block does not exist
+            # Put the begin of data block in front of new_lines
+            new_lines = ["data_"+block, "#"] + new_lines
+            # Find last category in the file
+            # and set start of new data_block with new category
+            # to stop of last category
+            last_stop = 0
+            for category_info in self._categories.values():
+                if last_stop < category_info["stop"]:
+                    last_stop = category_info["stop"]
+            category_start = last_stop + 2
+            category_stop = last_stop + len(new_lines)
+            len_diff = len(new_lines)-2
+            self._lines[last_stop:last_stop] = new_lines
+            self._add_category(block, category, category_start, category_stop,
+                               is_looped, is_multilined=False)
         # Update start and stop of all categories appearing after the
         # changed/added category
         for category_info in self._categories.values():
@@ -241,16 +275,16 @@ class PDBxFile(object):
     def _process_looped(self, lines):
         category_dict = {}
         keys = []
-        # array index
+        # Array index
         i = 0
-        # dictionary key index
+        # Dictionary key index
         j = 0
         for line in lines:
             in_key_lines = (line[0] == "_")
             if in_key_lines:
                 key = line.split(".")[1]
                 keys.append(key)
-                # pessimistic size allocation
+                # Pessimistic size allocation
                 # numpy array filled with strings
                 category_dict[key] = np.zeros(len(lines),
                                               dtype=object)
@@ -265,7 +299,7 @@ class PDBxFile(object):
                         j = 0
                         i += 1
         for key in category_dict.keys():
-            # trim to correct size
+            # Trim to correct size
             category_dict[key] = category_dict[key][:i]
         return category_dict
 

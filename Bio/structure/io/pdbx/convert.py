@@ -79,7 +79,7 @@ def _filter_inscode_altloc(array, model_dict, inscode, altloc):
             residue = code[0]
             insertion = code[1]
             residue_filter = (array.res_id == residue)
-            # Resetet filter for given res_id
+            # Reset filter for given res_id
             inscode_filter &= ~residue_filter
             # Choose atoms of res_id with insertion code
             inscode_filter |= residue_filter & (inscode_array == insertion)
