@@ -204,6 +204,19 @@ class _AtomAnnotationList(object):
             filter = filter.strip()
             return np.array(
                 [name.strip() == filter for name in self.atom_name])
+            
+    def annotation_length(self):
+        """
+        Get the length of the annotation arrays.
+        
+        For AtomArray it is the same as ``len(array)``.
+        
+        Returns
+        -------
+        length : int
+            Length of the annotation arrays.
+        """
+        return len(self.chain_id)
     
     def __eq__(self, item):
         """
@@ -401,18 +414,22 @@ class AtomArray(_AtomAnnotationList):
             If `index` is an integer an `Atom` instance,
             otherwise an `AtomArray` with reduced length is returned.
         """
-        try:
-            if isinstance(index, int):
-                return self.get_atom(index)
+        if isinstance(index, int):
+            return self.get_atom(index)
+        elif isinstance(index, tuple):
+            if len(index) == 2 and index[0] is Ellipsis:
+                # If first index is "...", just ignore the first index
+                return self.__getitem__(index[1])
             else:
-                new_array = AtomArray()
-                for annotation in self.annot:
-                    new_array.annot[annotation] = (self.annot[annotation]
-                                                      .__getitem__(index))
-                new_array.coord = self.coord.__getitem__(index)
-                return new_array
-        except:
-            raise IndexError("Invalid index") from None
+                raise IndexError("AtomArray cannot take multidimensional"
+                                 "indices")
+        else:
+            new_array = AtomArray()
+            for annotation in self.annot:
+                new_array.annot[annotation] = (self.annot[annotation]
+                                                  .__getitem__(index))
+            new_array.coord = self.coord.__getitem__(index)
+            return new_array
         
     def __setitem__(self, index, atom):
         """
@@ -616,35 +633,39 @@ class AtomArrayStack(_AtomAnnotationList):
         -------
         sub_array : AtomArray or AtomArrayStack
             If `index` is an integer an `AtomArray` instance,
-            otherwise an `AtomArrayStack` with reduced depth abd length
+            otherwise an `AtomArrayStack` with reduced depth and length
             is returned. In case the index is a tuple(int, int) an `Atom`
             instance is returned.  
         """
-        try:
-            if isinstance(index, int):
-                return self.get_array(index)
-            elif isinstance(index, tuple):
-                if type(index[0]) == int and type(index[1]) == int:
+        if isinstance(index, int):
+            return self.get_array(index)
+        elif isinstance(index, tuple):
+            if len(index) != 2:
+                raise IndexError("AtomArrayStack can take an index with more "
+                                 "than two dimensions")
+            if type(index[0]) == int:
+                if type(index[1]) == int:
                     array = self.get_array(index[0])
                     return array.get_atom(index[1])
-                elif type(index[0]) == int:
-                    array = self.get_array(index[0])
-                    return array.__getitem__(index[1:])
                 else:
-                    new_stack = AtomArrayStack()
-                    for name in self.annot:
-                        new_stack.annot[name] = (self.annot[name]
-                                                    .__getitem__(index[1:]))
-                    new_stack.coord = self.coord.__getitem__(index)
-                    return new_stack
+                    array = self.get_array(index[0])
+                    return array.__getitem__(index[1])
             else:
                 new_stack = AtomArrayStack()
                 for name in self.annot:
-                    new_stack.annot[name] = (self.annot[name])
-                new_stack.coord = self.coord.__getitem__(index)
+                    new_stack.annot[name] = (self.annot[name]
+                                                .__getitem__(index[1]))
+                if index[0] is Ellipsis:
+                    new_stack.coord = self.coord[:,index[1]]
+                else:
+                    new_stack.coord = self.coord.__getitem__(index)
                 return new_stack
-        except:
-            raise IndexError("Invalid index")
+        else:
+            new_stack = AtomArrayStack()
+            for name in self.annot:
+                new_stack.annot[name] = (self.annot[name])
+            new_stack.coord = self.coord.__getitem__(index)
+            return new_stack
             
     
     def __setitem__(self, index, array):

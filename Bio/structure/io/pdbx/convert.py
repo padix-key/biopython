@@ -94,7 +94,7 @@ def _filter_inscode_altloc(array, model_dict, inscode, altloc):
             altloc_filter &= ~residue_filter
             altloc_filter |= residue_filter & (altloc_array == altloc)
     # Apply combined filters
-    return array[inscode_filter & altloc_filter]
+    return array[..., inscode_filter & altloc_filter]
     
 
 
@@ -107,6 +107,45 @@ def _get_model_dict(atom_site_dict, model):
 
 
 def set_structure(pdbx_file, array):
+    """
+    if type(array) == AtomArrayStack:
+        models = array
+    elif type(array) == AtomArray:
+        models = [array]
+    else raise ValueError("Structure must be AtomArray or AtomArrayStack")
+    """
     atom_site_dict = OrderedDict()
+    atom_site_dict["group_PDB"] = np.array(["ATOM" if e == False else "HETATM"
+                                            for e in array.hetero])
+    atom_site_dict["id"] = (np.arange(1,array.annotation_length()+1)
+                           .astype("U6"))
+    atom_site_dict["type_symbol"] = np.copy(array.element)
+    atom_site_dict["label_atom_id"] = np.copy(array.atom_name)
+    atom_site_dict["label_alt_id"] = np.full(array.annotation_length(), ".")
+    atom_site_dict["label_comp_id"] = np.copy(array.res_name)
+    atom_site_dict["label_asym_id"] = np.copy(array.chain_id)
+    atom_site_dict["label_entity_id"] = ["None"]
+    atom_site_dict["label_seq_id"] = np.array(["." if e == -1 else str(e)
+                                            for e in array.res_id])
+    atom_site_dict["auth_asym_id"] = np.copy(array.chain_id)
+    if type(array) == AtomArrayStack:
+        for key, value in atom_site_dict.items():
+            atom_site_dict[key] = np.tile(value, reps=len(array))
+        coord = np.reshape(array.coord,
+                           (len(array)*array.annotation_length(), 3))
+        atom_site_dict["Cartn_x"] = coord[0].astype(str)
+        atom_site_dict["Cartn_x"] = coord[1].astype(str)
+        atom_site_dict["Cartn_x"] = coord[2].astype(str)
+        models = np.repeat(np.arange(1, len(array)+1),
+                           repeats=array.annotation_length())
+        atom_site_dict["pdbx_PDB_model_num"] = models
+    elif type(array) == AtomArray:
+        atom_site_dict["Cartn_x"] = array.coord[0].astype(str)
+        atom_site_dict["Cartn_x"] = array.coord[1].astype(str)
+        atom_site_dict["Cartn_x"] = array.coord[2].astype(str)
+        atom_site_dict["pdbx_PDB_model_num"] = np.full(len(array), "1")
+    else:
+        raise ValueError("Structure must be AtomArray or AtomArrayStack")
+    
     for key in atom_site_dict.keys():
-        print(key + ": " + atom_site_dict[key])
+        print(str(key) + ": " + str(atom_site_dict[key]))
