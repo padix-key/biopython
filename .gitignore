@@ -3,7 +3,7 @@ build
 
 #Ignore the distribution directory
 dist
- 
+
 #Ignore backup files from some Unix editors,
 *~
 *.swp
@@ -20,7 +20,7 @@ dist
 
 #Ignore hidden files from Dolphin window manager
 .directory
- 
+
 #Ignore all compiled python files (e.g. from running the unit tests):
 *.pyc
 *.pyo
@@ -38,7 +38,7 @@ MANIFEST
 
 #Ignore potential directory created during install:
 biopython.egg-info
- 
+
 #The graphics unit tests produce output files for human inspection
 #(at the time of writing, only PDF and PNG files are created)
 Tests/Graphics/*.pdf
@@ -94,3 +94,7 @@ Doc/*/*/hevea.sty
 #Ignore IntelliJ IDEA directory and project files
 .idea
 *.iml
+
+#Ignore Eclipse project files
+.project
+.pydevproject
