@@ -51,18 +51,18 @@ def get_structure(pdbx_file, data_block=None, insertion_code=None,
         
 
 def _fill_annotations(array, model_dict, extra_fields):
-    array.annot["chain_id"] = model_dict["auth_asym_id"].astype("U3")
-    array.annot["res_id"] = np.array([-1 if e in [".","?"] else int(e)
-                                      for e in model_dict["label_seq_id"]])
-    array.annot["res_name"] = model_dict["label_comp_id"].astype("U3")
-    array.annot["hetero"] = (model_dict["group_PDB"] == "HETATM")
-    array.annot["atom_name"] = model_dict["label_atom_id"].astype("U6")
-    array.annot["element"] = model_dict["type_symbol"].astype("U2")
+    array.set_annotation("chain_id", model_dict["auth_asym_id"].astype("U3"))
+    array.set_annotation("res_id", np.array([-1 if e in [".","?"] else int(e)
+                                             for e in model_dict["label_seq_id"]]))
+    array.set_annotation("res_name", model_dict["label_comp_id"].astype("U3"))
+    array.set_annotation("hetero", (model_dict["group_PDB"] == "HETATM"))
+    array.set_annotation("atom_name", model_dict["label_atom_id"].astype("U6"))
+    array.set_annotation("element", model_dict["type_symbol"].astype("U2"))
     if extra_fields is not None:
         for field in extra_fields:
             field_name = field[0]
             annot_name = field[1]
-            array.annot[annot_name] = model_dict[field_name]
+            array.set_annotation(annot_name, model_dict[field_name])
 
 
 def _filter_inscode_altloc(array, model_dict, inscode, altloc):

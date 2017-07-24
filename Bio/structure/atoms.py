@@ -42,7 +42,7 @@ all `Atom`, `AtomArray` and `AtomArrayStack` objects these annotations must be
 set, otherwise some functions will not work or errors will occur. Additionally
 to these annotations, an arbitrary amount of annotation categories can be added
 (Use `add_annotation()` for this). The annotation arrays can be accessed either
-via the corresponding dictionary (e.g. ``array.annot["res_id"]``) or directly
+via the corresponding dictionary (e.g. ``array._annot["res_id"]``) or directly
 (e.g. ``array.res_id``).
 
 For each type, the attributes can be accessed directly. Both `AtomArray` and
@@ -195,10 +195,10 @@ class _AtomAnnotationList(object):
         """
         if not isinstance(item, _AtomAnnotationList):
             return False
-        if self._annot.keys() != item.annot.keys():
+        if self._annot.keys() != item._annot.keys():
             return False
         for name in self._annot:
-            if not np.array_equal(self._annot[name], item.annot[name]):
+            if not np.array_equal(self._annot[name], item._annot[name]):
                 return False
         return True
     
@@ -389,7 +389,7 @@ class AtomArray(_AtomAnnotationList):
         """
         new_array = AtomArray()
         for name in self._annot:
-            new_array.annot[name] = np.copy(self._annot[name])
+            new_array._annot[name] = np.copy(self._annot[name])
         new_array.coord = np.copy(self.coord)
         return new_array
         
@@ -469,7 +469,7 @@ class AtomArray(_AtomAnnotationList):
         else:
             new_array = AtomArray()
             for annotation in self._annot:
-                new_array.annot[annotation] = (self._annot[annotation]
+                new_array._annot[annotation] = (self._annot[annotation]
                                                   .__getitem__(index))
             new_array.coord = self.coord.__getitem__(index)
             return new_array
@@ -487,7 +487,7 @@ class AtomArray(_AtomAnnotationList):
         """
         if isinstance(index, int):
             for name in self._annot:
-                self._annot[name] = atom.annot[name]
+                self._annot[name] = atom._annot[name]
             self.coord[index] = atom.coord
         else:
             raise IndexError("Index must be integer")
@@ -609,7 +609,7 @@ class AtomArrayStack(_AtomAnnotationList):
         """
         new_stack = AtomArrayStack()
         for name in self._annot:
-            new_stack.annot[name] = np.copy(self._annot[name])
+            new_stack._annot[name] = np.copy(self._annot[name])
         new_stack.coord = np.copy(self.coord)
         return new_stack
     
@@ -646,7 +646,7 @@ class AtomArrayStack(_AtomAnnotationList):
         """
         array = AtomArray()
         for name in self._annot:
-            array.annot[name] = self._annot[name]
+            array._annot[name] = self._annot[name]
         array.coord = self.coord[index]
         return array
 
@@ -696,7 +696,7 @@ class AtomArrayStack(_AtomAnnotationList):
             else:
                 new_stack = AtomArrayStack()
                 for name in self._annot:
-                    new_stack.annot[name] = (self._annot[name]
+                    new_stack._annot[name] = (self._annot[name]
                                                 .__getitem__(index[1]))
                 if index[0] is Ellipsis:
                     new_stack.coord = self.coord[:,index[1]]
@@ -706,7 +706,7 @@ class AtomArrayStack(_AtomAnnotationList):
         else:
             new_stack = AtomArrayStack()
             for name in self._annot:
-                new_stack.annot[name] = (self._annot[name])
+                new_stack._annot[name] = (self._annot[name])
             new_stack.coord = self.coord.__getitem__(index)
             return new_stack
             
@@ -817,16 +817,16 @@ def array(atoms):
     """
     # Check if all atoms have the same annotation names
     # Equality check requires sorting
-    names = sorted(atoms[0].annot.keys())
+    names = sorted(atoms[0]._annot.keys())
     for atom in atoms:
-        if sorted(atom.annot.keys()) != names:
+        if sorted(atom._annot.keys()) != names:
             raise ValueError("The atoms do not share the"
                              "same annotation categories")
     # Add all atoms to AtomArray
     array = AtomArray(length=len(atoms))
     for i in range(len(atoms)):
         for name in names:
-            array.annot[name] = atoms.annot[name]
+            array._annot[name] = atoms._annot[name]
         array.coord[i] = atoms[i].coord
     return array
 
@@ -852,8 +852,8 @@ def stack(arrays):
             raise ValueError("The arrays atom annotations"
                              "do not fit to each other") 
     array_stack = AtomArrayStack()
-    for name, annotation in arrays[0].annot.items():
-        array_stack.annot[name] = annotation
+    for name, annotation in arrays[0]._annot.items():
+        array_stack._annot[name] = annotation
     coord_list = [array.coord for array in arrays] 
     array_stack.coord = np.stack(coord_list, axis=0)
     return array_stack
