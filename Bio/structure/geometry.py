@@ -12,6 +12,7 @@ import numpy as np
 from . import Atom, AtomArray, AtomArrayStack
 from . import coord
 from . import vector_dot, norm_vector
+from . import filter_backbone
 from . import BadStructureError
 
 def distance(atoms1, atoms2):
@@ -155,11 +156,8 @@ def dihedral_backbone(atom_array, chain_id):
     """
     try:
         # Filter all backbone atoms
-        backbone = atom_array[((atom_array.atom_name == "N") |
-                               (atom_array.atom_name == "CA") |
-                               (atom_array.atom_name == "C")) &
-                               (atom_array.hetero == False) &
-                               (atom_array.chain_id == chain_id)]
+        backbone = atom_array[filter_backbone(atom_array) &
+                              (atom_array.chain_id == chain_id)]
         angle_atoms = np.zeros(( len(backbone)-3, 4, 3 ))
         # Fill numpy array, where last dimension is used for dihedral calc
         for i in range(len(angle_atoms)):

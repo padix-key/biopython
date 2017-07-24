@@ -202,52 +202,6 @@ class _AtomAnnotationList(object):
                 return False
         return True
     
-    def filter_atoms(self, filter):
-        """
-        Create a filter for defined atom names.
-        
-        This method has a similar result to ``object.atom_name == filter``.
-        The difference is that this method trims whitespaces from the compared
-        values. Furthermore this method can take special filter values, to
-        filter for groups of atom names or element names:
-        
-            - "all": No filtering is applied
-            - "backbone": Filters all protein backbone atoms ("N","CA","C")
-            - "hetero": Filters all atoms from hetero residues
-            - "E=X" Filters all atom of element *X*
-            
-        Since this method involves whitespace stripping, the performance is
-        lower compared to ``object.atom_name == filter``.
-        
-        Parameters
-        ----------
-        filter : string
-            The object to compare the annotation arrays with.
-        
-        Returns
-        -------
-        filter_array : 1-D ndarray(dtype=bool)
-            Filter for the given atom names, used for fancy indexing. Use atom
-            names or the special filters mentioned above.
-        """
-        if filter == "all":
-            return np.ones(len(self), dtype=bool)
-        elif filter == "backbone":
-            return [((self.atom_name == "N") |
-                   (self.atom_name == "CA") |
-                   (self.atom_name == "C")) &
-                   (self.hetero == False)]
-        elif filter == "hetero":
-            return self.hetero == True
-        elif "E=" in filter:
-            element = filter[-1]
-            return np.array(
-                [name.strip()[0] == element for name in self.atom_name])
-        else:
-            filter = filter.strip()
-            return np.array(
-                [name.strip() == filter for name in self.atom_name])
-            
     def annotation_length(self):
         """
         Get the length of the annotation arrays.

@@ -34,6 +34,8 @@ from .residues import *
 from .util import *
 from .error import *
 
+from .filter import *
+
 from .geometry import *
 from .compare import *
 from .adjacency import *
