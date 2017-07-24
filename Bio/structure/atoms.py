@@ -85,7 +85,7 @@ class _AtomAnnotationList(object):
         
     def add_annotation(self, annotation):
         """
-        Adds an annotation category, if not already existing.
+        Add an annotation category, if not already existing.
         
         Parameters
         ----------
@@ -97,7 +97,7 @@ class _AtomAnnotationList(object):
             
     def get_annotation(self, annotation):
         """
-        Returns an annotation array.
+        Return an annotation array.
         
         Parameters
         ----------
@@ -110,12 +110,13 @@ class _AtomAnnotationList(object):
             The annotation array.
         """
         if annotation not in self._annot:
-            raise ValueError("Annotation category ' " + annotation + " ' is not existing")
+            raise ValueError("Annotation category '" + annotation + "' is not existing")
         return self._annot[annotation]
     
     def set_annotation(self, annotation, array):
         """
-        Returns an annotation array.
+        Set an annotation array. if the annotation category does not exist yet, the category is
+        created.
         
         Parameters
         ----------
@@ -124,13 +125,11 @@ class _AtomAnnotationList(object):
         array : string
             The new value of the annotation category.
         """
-        if annotation not in self._annot:
-            raise ValueError("Annotation category ' " + annotation + " ' is not existing")
         self._annot[annotation] = array
         
     def get_annotation_categories(self):
         """
-        Returns a list containing all annotation categories.
+        Return a list containing all annotation categories.
             
         Returns
         -------
@@ -147,8 +146,8 @@ class _AtomAnnotationList(object):
         if attr in self._annot:
             return self._annot[attr]
         else:
-            raise AttributeError("'" + attr
-                                 + "' is not a valid atom annotation")
+            raise AttributeError("'" + type(self).__name__ +
+                                 "' object has no attribute '" + attr + "'")
         
     def __setattr__(self, attr, value):
         """
@@ -327,8 +326,8 @@ class Atom(object):
         if attr in self._annot:
             return self._annot[attr]
         else:
-            raise AttributeError("'" + "attr"
-                                 + "' is not a valid atom annotation")
+            raise AttributeError("'" + type(self).__name__ +
+                                 "' object has no attribute '" + attr + "'")
         
     def __setattr__(self, attr, value):
         # First condition is required, since call of the second would result in
