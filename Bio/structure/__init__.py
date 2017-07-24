@@ -32,6 +32,7 @@ An `Entity` from `BIO.PDB` can be converted into an `AtomArrray` or
 from .atoms import *
 from .residues import *
 from .util import *
+from .integrity import *
 from .error import *
 
 from .filter import *
