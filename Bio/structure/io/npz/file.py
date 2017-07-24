@@ -15,7 +15,7 @@ class NpzFile(object):
         self._data_dict = dict(np.load(file_name, allow_pickle=False))
                 
     def write(self, file_name):
-        np.savez(file_name, kwargs=self._data_dict)
+        np.savez(file_name, **self._data_dict)
     
     def copy(self):
         npz_file = NpzFile()
