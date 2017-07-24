@@ -128,7 +128,7 @@ class _AtomAnnotationList(object):
             raise ValueError("Annotation category ' " + annotation + " ' is not existing")
         self._annot[annotation] = array
         
-    def get_annotation_list(self):
+    def get_annotation_categories(self):
         """
         Returns a list containing all annotation categories.
             
