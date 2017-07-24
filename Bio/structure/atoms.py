@@ -67,7 +67,7 @@ class _AtomAnnotationList(object):
         """
         Create the annotation arrays
         """
-        self.annot = {}
+        self._annot = {}
         self.add_annotation("chain_id")
         self.add_annotation("res_id")
         self.add_annotation("res_name")
@@ -85,23 +85,67 @@ class _AtomAnnotationList(object):
         
     def add_annotation(self, annotation):
         """
-        Adds an annotation category
+        Adds an annotation category, if not already existing.
         
         Parameters
         ----------
         annotation : string
             The annotation category to be added.
         """
-        if annotation not in self.annot:
-            self.annot[annotation] = None
+        if annotation not in self._annot:
+            self._annot[str(annotation)] = None
+            
+    def get_annotation(self, annotation):
+        """
+        Returns an annotation array.
+        
+        Parameters
+        ----------
+        annotation : string
+            The annotation category to be returned.
+            
+        Returns
+        -------
+        array : ndarray
+            The annotation array.
+        """
+        if annotation not in self._annot:
+            raise ValueError("Annotation category ' " + annotation + " ' is not existing")
+        return self._annot[annotation]
+    
+    def set_annotation(self, annotation, array):
+        """
+        Returns an annotation array.
+        
+        Parameters
+        ----------
+        annotation : string
+            The annotation category to be set.
+        array : string
+            The new value of the annotation category.
+        """
+        if annotation not in self._annot:
+            raise ValueError("Annotation category ' " + annotation + " ' is not existing")
+        self._annot[annotation] = array
+        
+    def get_annotation_list(self):
+        """
+        Returns a list containing all annotation categories.
+            
+        Returns
+        -------
+        categories : list
+            The list containing the names of each annotation category.
+        """
+        return list(self._annot.keys())
     
     def __getattr__(self, attr):
         """
         If the attribute is an annotation, the annotation is returned from
         the dictionary.
         """
-        if attr in self.annot:
-            return self.annot[attr]
+        if attr in self._annot:
+            return self._annot[attr]
         else:
             raise AttributeError("'" + attr
                                  + "' is not a valid atom annotation")
@@ -113,10 +157,10 @@ class _AtomAnnotationList(object):
         """
         # First condition is required, since call of the second would result in
         # indefinite calls of __getattr__
-        if attr == "annot":
+        if attr == "_annot":
             super().__setattr__(attr, value)
-        elif attr in self.annot:
-            self.annot[attr] = value
+        elif attr in self._annot:
+            self._annot[attr] = value
         else:
             super().__setattr__(attr, value)
 
@@ -130,7 +174,7 @@ class _AtomAnnotationList(object):
         integrity : bool
             True, if the attribute shapes are consistent.
         """
-        for annotation in self.annot.values():
+        for annotation in self._annot.values():
             if annotation.shape != (len(self),):
                 return False
         return True
@@ -152,10 +196,10 @@ class _AtomAnnotationList(object):
         """
         if not isinstance(item, _AtomAnnotationList):
             return False
-        if self.annot.keys() != item.annot.keys():
+        if self._annot.keys() != item.annot.keys():
             return False
-        for name in self.annot:
-            if not np.array_equal(self.annot[name], item.annot[name]):
+        for name in self._annot:
+            if not np.array_equal(self._annot[name], item.annot[name]):
                 return False
         return True
     
@@ -267,12 +311,12 @@ class Atom(object):
         ----------
         See class attributes
         """
-        self.annot = {}
+        self._annot = {}
         if "kwargs" in kwargs:
             # kwargs are given directly as dictionary
             kwargs = kwargs["kwargs"]
         for name, annotation in kwargs.items():
-            self.annot[name] = annotation
+            self._annot[name] = annotation
         coord = np.array(coord, dtype=float)
         # Check if coord contains x,y and z coordinates
         if coord.shape != (3,):
@@ -280,8 +324,8 @@ class Atom(object):
         self.coord = coord
         
     def __getattr__(self, attr):
-        if attr in self.annot:
-            return self.annot[attr]
+        if attr in self._annot:
+            return self._annot[attr]
         else:
             raise AttributeError("'" + "attr"
                                  + "' is not a valid atom annotation")
@@ -289,10 +333,10 @@ class Atom(object):
     def __setattr__(self, attr, value):
         # First condition is required, since call of the second would result in
         # indefinite calls of __getattr__
-        if attr == "annot":
+        if attr == "_annot":
             super().__setattr__(attr, value)
-        elif attr in self.annot:
-            self.annot[attr] = value
+        elif attr in self._annot:
+            self._annot[attr] = value
         else:
             super().__setattr__(attr, value)
     
@@ -301,7 +345,7 @@ class Atom(object):
         String representation of the atom.
         """
         string = ""
-        for value in self.annot.values():
+        for value in self._annot.values():
             string += str(value) + "\t"
         return string + str(self.coord)
 
@@ -345,8 +389,8 @@ class AtomArray(_AtomAnnotationList):
             A deep copy of this array.
         """
         new_array = AtomArray()
-        for name in self.annot:
-            new_array.annot[name] = np.copy(self.annot[name])
+        for name in self._annot:
+            new_array.annot[name] = np.copy(self._annot[name])
         new_array.coord = np.copy(self.coord)
         return new_array
         
@@ -382,7 +426,7 @@ class AtomArray(_AtomAnnotationList):
             Atom at position `index`. 
         """
         kwargs = {}
-        for name, annotation in self.annot.items():
+        for name, annotation in self._annot.items():
             kwargs[name] = annotation[index]
         return Atom(coord = self.coord[index], kwargs=kwargs)
     
@@ -425,8 +469,8 @@ class AtomArray(_AtomAnnotationList):
                                  "indices")
         else:
             new_array = AtomArray()
-            for annotation in self.annot:
-                new_array.annot[annotation] = (self.annot[annotation]
+            for annotation in self._annot:
+                new_array.annot[annotation] = (self._annot[annotation]
                                                   .__getitem__(index))
             new_array.coord = self.coord.__getitem__(index)
             return new_array
@@ -443,8 +487,8 @@ class AtomArray(_AtomAnnotationList):
             The atom to be set.
         """
         if isinstance(index, int):
-            for name in self.annot:
-                self.annot[name] = atom.annot[name]
+            for name in self._annot:
+                self._annot[name] = atom.annot[name]
             self.coord[index] = atom.coord
         else:
             raise IndexError("Index must be integer")
@@ -459,8 +503,8 @@ class AtomArray(_AtomAnnotationList):
             The position where the atom should be deleted.
         """
         if isinstance(index, int):
-            for name in self.annot:
-                self.annot[name] = np.delete(self.annot[name], index, axis=0)
+            for name in self._annot:
+                self._annot[name] = np.delete(self._annot[name], index, axis=0)
             self.coord = np.delete(self.coord, index, axis=0)
         else:
             raise IndexError("Index must be integer")
@@ -565,8 +609,8 @@ class AtomArrayStack(_AtomAnnotationList):
             A deep copy of this stack.
         """
         new_stack = AtomArrayStack()
-        for name in self.annot:
-            new_stack.annot[name] = np.copy(self.annot[name])
+        for name in self._annot:
+            new_stack.annot[name] = np.copy(self._annot[name])
         new_stack.coord = np.copy(self.coord)
         return new_stack
     
@@ -602,8 +646,8 @@ class AtomArrayStack(_AtomAnnotationList):
             AtomArray at position `index`. 
         """
         array = AtomArray()
-        for name in self.annot:
-            array.annot[name] = self.annot[name]
+        for name in self._annot:
+            array.annot[name] = self._annot[name]
         array.coord = self.coord[index]
         return array
 
@@ -652,8 +696,8 @@ class AtomArrayStack(_AtomAnnotationList):
                     return array.__getitem__(index[1])
             else:
                 new_stack = AtomArrayStack()
-                for name in self.annot:
-                    new_stack.annot[name] = (self.annot[name]
+                for name in self._annot:
+                    new_stack.annot[name] = (self._annot[name]
                                                 .__getitem__(index[1]))
                 if index[0] is Ellipsis:
                     new_stack.coord = self.coord[:,index[1]]
@@ -662,8 +706,8 @@ class AtomArrayStack(_AtomAnnotationList):
                 return new_stack
         else:
             new_stack = AtomArrayStack()
-            for name in self.annot:
-                new_stack.annot[name] = (self.annot[name])
+            for name in self._annot:
+                new_stack.annot[name] = (self._annot[name])
             new_stack.coord = self.coord.__getitem__(index)
             return new_stack
             
