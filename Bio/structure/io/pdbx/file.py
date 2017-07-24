@@ -249,9 +249,9 @@ class PDBxFile(object):
     
     
     def copy(self):
-        PDBxFile = PDBxFile()
-        PDBxFile._lines = copy.deepcopy(self._lines)
-        PDBxFile._categories = copy.deepcopy(self._categories)
+        pdbx_file = PDBxFile()
+        pdbx_file._lines = copy.deepcopy(self._lines)
+        pdbx_file._categories = copy.deepcopy(self._categories)
     
     
     def _add_category(self, block, category_name,
