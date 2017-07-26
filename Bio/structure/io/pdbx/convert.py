@@ -148,7 +148,11 @@ def set_structure(pdbx_file, array, data_block=None):
     atom_site_dict["id"] = (np.arange(1,len(atom_site_dict["group_PDB"])+1)
                            .astype("U6"))
     if data_block is None:
-        data_block = pdbx_file.get_block_names()[0]
+        data_blocks = pdbx_file.get_block_names()
+        if len(data_blocks) == 0:
+            raise TypeError("No data block is existent in PDB file, must be specified")
+        else:
+            data_block = data_blocks[0]
     pdbx_file.set_category("atom_site", atom_site_dict, data_block)
 
 
