@@ -50,25 +50,26 @@ class PDBFile(object):
             charge = [ "+"+str(np.abs(charge)) if charge > 0 else
                       ("-"+str(np.abs(charge)) if charge < 0 else
                        "")
-                      for charge in array.get_category("charge")]
+                      for charge in array.get_annotation("charge")]
         except ValueError:
             # In case charge annotation is not existing
             charge = [""] * len(array)
         for i in range(len(array)):
             self._lines[i] = ("{:6}".format(hetero[i]) + 
-                              "{5i}".format(atom_id[i]) +
+                              "{:>5d}".format(atom_id[i]) +
                               " " +
                               "{:4}".format(array.atom_name[i]) +
                               " " +
                               "{:3}".format(array.res_name[i]) +
                               " " +
-                              "{1}".format(array.chain_id[i]) +
-                              "{4i}".format(array.res_id[i]) +
+                              "{:1}".format(array.chain_id[i]) +
+                              "{:>4d}".format(array.res_id[i]) +
                               (" " * 4) +
-                              "{8.3f}".format(array.coord[i,0]) +
-                              "{8.3f}".format(array.coord[i,1]) +
-                              "{8.3f}".format(array.coord[i,2]) +
+                              "{:>8.3f}".format(array.coord[i,0]) +
+                              "{:>8.3f}".format(array.coord[i,1]) +
+                              "{:>8.3f}".format(array.coord[i,2]) +
                               (" " * 22) +
-                              "{2}".format(array.element[i]) +
-                              "{2}".format(charge[i])
-                              )
+                              "{:2}".format(array.element[i]) +
+                              "{:2}".format(charge[i])
+                             )
+            
