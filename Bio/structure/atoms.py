@@ -4,24 +4,24 @@
 # as part of this package.
 
 """
-This module contains the main types of the `Structure` subpackage: `Atom`,
-`AtomArray` and `AtomArrayStack`.
+This module contains the main types of the `Structure` subpackage:
+`Atom`, `AtomArray` and `AtomArrayStack`.
 
 In this context an atom is described by two kinds of attributes: the
-coordinates and the annotations. The annotations include information about
-polypetide chain id, residue id, residue name, hetero atom information and atom
-name. The coordinates are a `numpy` float ndarray of length 3, containing the
-x, y and z coordinates.
+coordinates and the annotations. The annotations include information
+about polypetide chain id, residue id, residue name, hetero atom
+information and atom name. The coordinates are a `numpy` float ndarray  
+of length 3, containing the x, y and z coordinates.
 
-An `Atom` contains data for a single atom, it stores the annotations as scalar
-values and the coordinates as length 3 ndarray.
+An `Atom` contains data for a single atom, it stores the annotations as
+scalar values and the coordinates as length 3 ndarray.
 An `AtomArray` stores data for an entire model containing *n* atoms.
-Therefore the annotations are represented as ndarrays of length *n*, so called
-annotation arrays. The coordinates are a (n x 3) ndarray.
+Therefore the annotations are represented as ndarrays of length *n*,
+so called annotation arrays. The coordinates are a (n x 3) ndarray.
 `AtomArrayStack` stores data for *m* models. Each `AtomArray` in
-the `AtomArrayStack` has the same annotation arrays, but may differ in atom
-coordinates. Therefore the annotation arrays are represented as ndarrays of
-length *n*, while the coordinates are a (m x n x 3) ndarray.
+the `AtomArrayStack` has the same annotation arrays, but may differ
+in atom coordinates. Therefore the annotation arrays are represented as
+ndarrays of length *n*, while the coordinates are a (m x n x 3) ndarray.
 All types must not be subclassed.
 
 The following annotation categories are mandatory:
@@ -34,24 +34,25 @@ res_id     int          1,2,3, ...            Sequence position of residue
 res_name   string (U3)  'GLY','ALA', ...      Residue name
 hetero     bool         True, False           Identifier for non AA residues
 atom_name  string (U6)  'CA','N', ...         Atom name
-element    string (U2)  'C','O','N', ...      Chemical Element
+element    string (U2)  'C','O','SE', ...     Chemical Element
 =========  ===========  ===================   ================================
 
-These annotation categories correspond to `Entity` attributes in `Bio.PDB`. For
-all `Atom`, `AtomArray` and `AtomArrayStack` objects these annotations must be
-set, otherwise some functions will not work or errors will occur. Additionally
-to these annotations, an arbitrary amount of annotation categories can be added
-(Use `add_annotation()` for this). The annotation arrays can be accessed either
-via the corresponding dictionary (e.g. ``array._annot["res_id"]``) or directly
-(e.g. ``array.res_id``).
+For all `Atom`, `AtomArray` and `AtomArrayStack` objects these
+annotations must be set, otherwise some functions will not work or
+errors will occur.
+Additionally to these annotations, an arbitrary amount of annotation
+categories can be added (Use `add_annotation()` for this).
+The annotation arrays can be accessed either via the function
+`get_annotation()` or directly (e.g. ``array.res_id``).
 
-For each type, the attributes can be accessed directly. Both `AtomArray` and
-`AtomArrayStack` support `numpy` style indexing, the index is propagated to
-each attribute. If a single integer is used as index, an object with one
-dimension less is returned
+For each type, the attributes can be accessed directly. Both `AtomArray`
+and `AtomArrayStack` support `numpy` style indexing, the index is
+propagated to each attribute. If a single integer is used as index,
+an object with one dimension less is returned
 (`AtomArrayStack` -> `AtomArray`, `AtomArray` -> `Atom`).
-Do not expect a deep copy, when sclicing an `AtomArray` or `AtomArrayStack`.
-The attributes of the sliced object may still point to the original `ndarray`. 
+Do not expect a deep copy, when sclicing an `AtomArray` or
+`AtomArrayStack`. The attributes of the sliced object may still point to
+the original `ndarray`. 
 """
 
 import numpy as np
@@ -110,13 +111,14 @@ class _AtomAnnotationList(object):
             The annotation array.
         """
         if annotation not in self._annot:
-            raise ValueError("Annotation category '" + annotation + "' is not existing")
+            raise ValueError("Annotation category '" + annotation +
+                             "' is not existing")
         return self._annot[annotation]
     
     def set_annotation(self, annotation, array):
         """
-        Set an annotation array. if the annotation category does not exist yet, the category is
-        created.
+        Set an annotation array. if the annotation category does not
+        exist yet, the category is created.
         
         Parameters
         ----------
@@ -140,8 +142,8 @@ class _AtomAnnotationList(object):
     
     def __getattr__(self, attr):
         """
-        If the attribute is an annotation, the annotation is returned from
-        the dictionary.
+        If the attribute is an annotation, the annotation is returned
+        from the dictionary.
         """
         if attr in self._annot:
             return self._annot[attr]
@@ -154,8 +156,8 @@ class _AtomAnnotationList(object):
         If the attribute is an annotation, the `value` is saved to the
         annotation in the dictionary.
         """
-        # First condition is required, since call of the second would result in
-        # indefinite calls of __getattr__
+        # First condition is required, since call of the second would
+        # result in indefinite calls of __getattr__
         if attr == "_annot":
             super().__setattr__(attr, value)
         elif attr in self._annot:
@@ -180,8 +182,8 @@ class _AtomAnnotationList(object):
     
     def equal_annotations(self, item):
         """
-        Check, if this object shares equal annotation arrays with the given
-        `AtomArray` or `AtomArrayStack`.
+        Check, if this object shares equal annotation arrays with the
+        given `AtomArray` or `AtomArrayStack`.
         
         Parameters
         ----------
@@ -284,8 +286,8 @@ class Atom(object):
                                  "' object has no attribute '" + attr + "'")
         
     def __setattr__(self, attr, value):
-        # First condition is required, since call of the second would result in
-        # indefinite calls of __getattr__
+        # First condition is required, since call of the second would
+        # result in indefinite calls of __getattr__
         if attr == "_annot":
             super().__setattr__(attr, value)
         elif attr in self._annot:
@@ -307,14 +309,13 @@ class AtomArray(_AtomAnnotationList):
     """
     An array representation of a structure consisting of multiple atoms.
     
-    All attributes correspond to `Entity` attributes in `Bio.PDB`.
-    
     Attributes
     ----------
     annot : dict
         The dictionary containing all annotation arrays.
     coord : ndarray(dtype=float)
-        (n x 3) ndarray containing the x, y and z coordinate of the atoms.
+        (n x 3) ndarray containing the x, y and z coordinate of the
+        atoms.
     """
     
     def __init__(self, length=None):
@@ -324,8 +325,8 @@ class AtomArray(_AtomAnnotationList):
         Parameters
         ----------
         length : int, optional
-            If length is given, the attribute arrays will be created with
-            zeros.
+            If length is given, the attribute arrays will be created
+            with zeros.
         """
         super().__init__(length)
         if length == None:
@@ -334,7 +335,8 @@ class AtomArray(_AtomAnnotationList):
         
     def copy(self):
         """
-        Create a new `AtomArray` instance with all attribute arrays copied.
+        Create a new `AtomArray` instance with all attribute arrays
+        copied.
         
         Returns
         -------
@@ -519,20 +521,19 @@ class AtomArray(_AtomAnnotationList):
 
 class AtomArrayStack(_AtomAnnotationList):
     """
-    A collection of multiple atom arrays, where each atom array has equal
-    annotation arrays.
+    A collection of multiple atom arrays, where each atom array has
+    equal annotation arrays.
     
-    Since the annotations are equal for each array the annotaion arrays are
-    1-D, while the coordinate array is 3-D (m x n x 3).
-    
-    All attributes correspond to `Entity` attributes in `Bio.PDB`.
+    Since the annotations are equal for each array the annotaion arrays
+    are 1-D, while the coordinate array is 3-D (m x n x 3).
     
     Attributes
     ----------
     annot : dict
         The dictionary containing all annotation arrays.
     coord : ndarray(dtype=float)
-        (m x n x 3) ndarray containing the x, y and z coordinate of the atoms.
+        (m x n x 3) ndarray containing the x, y and z coordinate of the
+        atoms.
     """
     
     def __init__(self, depth=None, length=None):
@@ -542,9 +543,9 @@ class AtomArrayStack(_AtomAnnotationList):
         Parameters
         ----------
         depth, length : int, optional
-            If length and depth is given, the attribute arrays will be created
-            with zeros. `depth` corresponds to the first dimension, `length`
-            to the second.
+            If length and depth is given, the attribute arrays will be
+            created with zeros. `depth` corresponds to the first
+            dimension, `length` to the second.
         """
         super().__init__(length)
         if depth == None or length == None:
@@ -584,7 +585,8 @@ class AtomArrayStack(_AtomAnnotationList):
     
     def get_array(self, index):
         """
-        Obtain the atom array instance of the stack at the specified index.
+        Obtain the atom array instance of the stack at the specified
+        index.
         
         The same as ``stack[index]``, if `index` is an integer.
         
@@ -619,7 +621,8 @@ class AtomArrayStack(_AtomAnnotationList):
             
     def __getitem__(self, index):
         """
-        Obtain the atom array instance or an substack at the specified index.
+        Obtain the atom array instance or an substack at the specified
+        index.
         
         Parameters
         ----------
@@ -631,8 +634,8 @@ class AtomArrayStack(_AtomAnnotationList):
         sub_array : AtomArray or AtomArrayStack
             If `index` is an integer an `AtomArray` instance,
             otherwise an `AtomArrayStack` with reduced depth and length
-            is returned. In case the index is a tuple(int, int) an `Atom`
-            instance is returned.  
+            is returned. In case the index is a tuple(int, int) an
+            `Atom` instance is returned.  
         """
         if isinstance(index, int):
             return self.get_array(index)
@@ -839,13 +842,14 @@ def coord(item):
     """
     Get the atom coordinates of the given array.
     
-    This may be directly and `AtomArray` or `AtomArrayStack` or alternatively
-    an (n x 3) or (m x n x 3) `ndarray` containing the coordinates.
+    This may be directly and `Atom`, `AtomArray` or `AtomArrayStack` or
+    alternatively an (n x 3) or (m x n x 3) `ndarray`
+    containing the coordinates.
     
     Parameters
     ----------
-    item : `AtomArray` or `AtomArrayStack` or ndarray
-        Takes the coord attribute, if `item` is `AtomArray` or
+    item : `Atom`, `AtomArray` or `AtomArrayStack` or ndarray
+        Takes the coord attribute, if `item` is `Atom`, `AtomArray` or
         `AtomArrayStack`, or takes directly a ndarray.
     
     Returns
