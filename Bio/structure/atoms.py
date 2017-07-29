@@ -10,32 +10,36 @@ This module contains the main types of the `Structure` subpackage:
 In this context an atom is described by two kinds of attributes: the
 coordinates and the annotations. The annotations include information
 about polypetide chain id, residue id, residue name, hetero atom
-information and atom name. The coordinates are a `numpy` float ndarray  
-of length 3, containing the x, y and z coordinates.
+information, atom name and optionally more. The coordinates are a
+`numpy` float `ndarray` of length 3, containing the x, y and z
+coordinates.
 
 An `Atom` contains data for a single atom, it stores the annotations as
-scalar values and the coordinates as length 3 ndarray.
-An `AtomArray` stores data for an entire model containing *n* atoms.
-Therefore the annotations are represented as ndarrays of length *n*,
-so called annotation arrays. The coordinates are a (n x 3) ndarray.
+scalar values and the coordinates as length 3 `ndarray`.
+An `AtomArray` stores data for an entire structure model containing *n*
+atoms. Therefore the annotations are represented as `ndarray`s of
+length *n*, so called annotation arrays. The coordinates are a (n x 3)
+`ndarray`.
 `AtomArrayStack` stores data for *m* models. Each `AtomArray` in
-the `AtomArrayStack` has the same annotation arrays, but may differ
-in atom coordinates. Therefore the annotation arrays are represented as
-ndarrays of length *n*, while the coordinates are a (m x n x 3) ndarray.
+the `AtomArrayStack` has the same annotation arrays, since each atom
+must be represented in all models in the stack. Each model may differ in
+atom coordinates. Therefore the annotation arrays are represented as
+`ndarray`s of length *n*, while the coordinates are a (m x n x 3)
+`ndarray`.
 All types must not be subclassed.
 
 The following annotation categories are mandatory:
 
-=========  ===========  ===================   ================================
-Category   Type         Examples              Description
-=========  ===========  ===================   ================================
-chain_id   string (U3)  'A','S','AB', ...     Polypeptide chain
-res_id     int          1,2,3, ...            Sequence position of residue
-res_name   string (U3)  'GLY','ALA', ...      Residue name
-hetero     bool         True, False           Identifier for non AA residues
-atom_name  string (U6)  'CA','N', ...         Atom name
-element    string (U2)  'C','O','SE', ...     Chemical Element
-=========  ===========  ===================   ================================
+=========  ===========  =================  =============================
+Category   Type         Examples           Description
+=========  ===========  =================  =============================
+chain_id   string (U3)  'A','S','AB', ...  Polypeptide chain
+res_id     int          1,2,3, ...         Sequence position of residue
+res_name   string (U3)  'GLY','ALA', ...   Residue name
+hetero     bool         True, False        True, for non AA residues
+atom_name  string (U6)  'CA','N', ...      Atom name
+element    string (U2)  'C','O','SE', ...  Chemical Element
+=========  ===========  =================  =============================
 
 For all `Atom`, `AtomArray` and `AtomArrayStack` objects these
 annotations must be set, otherwise some functions will not work or
@@ -44,6 +48,15 @@ Additionally to these annotations, an arbitrary amount of annotation
 categories can be added (Use `add_annotation()` for this).
 The annotation arrays can be accessed either via the function
 `get_annotation()` or directly (e.g. ``array.res_id``).
+
+The following annotation categories are optionally used by some utility
+funtions:
+
+=========  ===========  =================   ============================
+Category   Type         Examples            Description
+=========  ===========  =================   ============================
+charge     int          -2,-1,0,1,2, ...    Electric charge of the atom
+=========  ===========  =================   ============================
 
 For each type, the attributes can be accessed directly. Both `AtomArray`
 and `AtomArrayStack` support `numpy` style indexing, the index is
@@ -58,16 +71,19 @@ the original `ndarray`.
 import numpy as np
 import Bio.PDB
 
-class _AtomAnnotationList(object):
+class _AtomArrayBase(object):
     """
-    Representation of the annotation arrays for
-    `AtomArray` and `AtomArrayStack`.
+    Private base class for `AtomArray` and `AtomArrayStack`. It
+    implements functionality for annotation arrays and also
+    rudimentarily for coordinates.
     """
     
-    def __init__(self, length=None):
+    def __init__(self, length):
         """
         Create the annotation arrays
         """
+        self._array_length = length
+        self._coord = None
         self._annot = {}
         self.add_annotation("chain_id")
         self.add_annotation("res_id")
@@ -84,25 +100,57 @@ class _AtomAnnotationList(object):
         self.atom_name = np.zeros(length, dtype="U6")
         self.element = np.zeros(length, dtype="U2")
         
-    def add_annotation(self, annotation):
+    def array_length(self):
+        """
+        Get the length of the atom array.
+        
+        This value is equivalent to the length of each annotation array.
+        For `AtomArray` it is the same as ``len(array)``.
+        
+        Returns
+        -------
+        length : int
+            Length of the array(s).
+        """
+        return self._array_length
+        
+    def add_annotation(self, category):
         """
         Add an annotation category, if not already existing.
         
+        The initial value of the new category is `None`.
+        
         Parameters
         ----------
-        annotation : string
+        category : string
             The annotation category to be added.
+        
+        See Also
+        --------
+        set_annotation
         """
-        if annotation not in self._annot:
-            self._annot[str(annotation)] = None
+        if category not in self._annot:
+            self._annot[str(category)] = None
             
-    def get_annotation(self, annotation):
+    def del_annotation(self, category):
+        """
+        Removes an annotation category.
+        
+        Parameters
+        ----------
+        category : string
+            The annotation category to be removed.
+        """
+        if category not in self._annot:
+            del self._annot[str(category)]
+            
+    def get_annotation(self, category):
         """
         Return an annotation array.
         
         Parameters
         ----------
-        annotation : string
+        category : string
             The annotation category to be returned.
             
         Returns
@@ -110,33 +158,40 @@ class _AtomAnnotationList(object):
         array : ndarray
             The annotation array.
         """
-        if annotation not in self._annot:
+        if category not in self._annot:
             raise ValueError("Annotation category '" + annotation +
                              "' is not existing")
-        return self._annot[annotation]
+        return self._annot[category]
     
-    def set_annotation(self, annotation, array):
+    def set_annotation(self, category, array):
         """
-        Set an annotation array. if the annotation category does not
+        Set an annotation array. If the annotation category does not
         exist yet, the category is created.
         
         Parameters
         ----------
-        annotation : string
+        category : string
             The annotation category to be set.
-        array : string
-            The new value of the annotation category.
+        array : ndarray or None
+            The new value of the annotation category. The size of the
+            array must be the same as the array length.
         """
-        self._annot[annotation] = array
+        if not instanceof(array, np.ndarray) and array is not None:
+            raise TypeError("Value must be ndarray or None")
+        if len(array) != self._array_length:
+            raise IndexError("Expected array length "
+                             + str(self._array_length)
+                             + ", but got " + str(len(array)) )
+        self._annot[category] = array
         
     def get_annotation_categories(self):
         """
-        Return a list containing all annotation categories.
+        Return a list containing all annotation array categories.
             
         Returns
         -------
         categories : list
-            The list containing the names of each annotation category.
+            The list containing the names of each annotation array.
         """
         return list(self._annot.keys())
     
@@ -144,8 +199,11 @@ class _AtomAnnotationList(object):
         """
         If the attribute is an annotation, the annotation is returned
         from the dictionary.
+        Exposes coordinates.
         """
-        if attr in self._annot:
+        if attr == "coord":
+            return self._coord
+        elif attr in self._annot:
             return self._annot[attr]
         else:
             raise AttributeError("'" + type(self).__name__ +
@@ -155,30 +213,69 @@ class _AtomAnnotationList(object):
         """
         If the attribute is an annotation, the `value` is saved to the
         annotation in the dictionary.
+        Exposes coordinates.
+        `value` must have same length as `array_length()`.
         """
-        # First condition is required, since call of the second would
-        # result in indefinite calls of __getattr__
-        if attr == "_annot":
+        if attr == "coord":
+            if not instanceof(value, np.ndarray):
+                raise TypeError("Value must be ndarray")
+            if value.shape[-2] != self._array_length:
+                raise IndexError("Expected array length "
+                                 + str(self._array_length)
+                                 + ", but got " + str(len(value)) )
+            self._coord = value
+        # This condition is required, since otherwise 
+        # call of the next one would result
+        # in indefinite calls of __setattr__
+        elif attr == "_annot":
             super().__setattr__(attr, value)
         elif attr in self._annot:
-            self._annot[attr] = value
+            self.set_annotation(attr, value)
         else:
             super().__setattr__(attr, value)
-
+            
+    def __dir__(self):
+        attr = super().__dir__()
+        attr.append("coord")
+        for name in self._annot.keys():
+            attr.append(name)
+            
+    def _subarray(self, new_object, index):
+        for annotation in self._annot:
+            if self._annot[annotation] is None:
+                new_object._annot[annotation] = None
+            else:
+                new_object._annot[annotation] = (self._annot[annotation]
+                                                 .__getitem__(index))
+        new_object._coord = self._coord[..., index, :]
+        new_object._array_length = new_object._coord.shape[-2]
+        return new_object
         
-    def check_integrity(self):
-        """
-        Check, if all annotation ndarrays have appropriate shapes.
+    def _set_element(self, index, atom):
+        try:
+            if isinstance(index, int):
+                for name in self._annot:
+                    self._annot[name][index] = atom._annot[name]
+                self._coord[..., index, :] = atom._coord
+            else:
+                raise IndexError("Index must be integer")
+        except KeyError:
+            raise KeyError("Atom has insufficient annotations")
         
-        Returns
-        -------
-        integrity : bool
-            True, if the attribute shapes are consistent.
-        """
-        for annotation in self._annot.values():
-            if annotation.shape != (len(self),):
-                return False
-        return True
+    def _del_element(self, index):
+        if isinstance(index, int):
+            for name in self._annot:
+                self._annot[name] = np.delete(self._annot[name], index, axis=0)
+            self._coord = np.delete(self._coord, index, axis=-2)
+            self._array_length = self._coord.shape[-2]
+        else:
+            raise IndexError("Index must be integer")
+        
+    def _copy_attributes(self, new_object):
+        for name in self._annot:
+            new_object._annot[name] = np.copy(self._annot[name])
+        new_object._coord = np.copy(self._coord)
+        return new_object
     
     def equal_annotations(self, item):
         """
@@ -193,29 +290,33 @@ class _AtomAnnotationList(object):
         Returns
         -------
         equality : bool
-            True, if the aannotation arrays are equal.
+            True, if the annotation arrays are equal.
         """
-        if not isinstance(item, _AtomAnnotationList):
+        if not isinstance(item, _AtomarrayBase):
             return False
-        if self._annot.keys() != item._annot.keys():
+        if equal_annotation_categories(self, item):
             return False
         for name in self._annot:
             if not np.array_equal(self._annot[name], item._annot[name]):
                 return False
         return True
     
-    def annotation_length(self):
+    def equal_annotation_categories(self, item):
         """
-        Get the length of the annotation arrays.
+        Check, if this object shares equal annotation array catgeories
+        with the given `AtomArray` or `AtomArrayStack`.
         
-        For AtomArray it is the same as ``len(array)``.
+        Parameters
+        ----------
+        item : AtomArray or AtomArrayStack
+            The object to compare the annotation arrays with.
         
         Returns
         -------
-        length : int
-            Length of the annotation arrays.
+        equality : bool
+            True, if the annotation array names are equal.
         """
-        return len(self.chain_id)
+        return self._annot.keys() != item._annot.keys()
     
     def __eq__(self, item):
         """
@@ -223,6 +324,8 @@ class _AtomAnnotationList(object):
         --------
         equal_annotations
         """
+        if not np.array_equal(self._coord, item._coord):
+            return False
         return self.equal_annotations(item)
     
     def __ne__(self, item):
@@ -242,20 +345,54 @@ class _AtomAnnotationList(object):
         length : int
             Length of the annotation arrays.
         """
-        # length is determined by length of chain_id attribute
-        return self.chain_id.shape[0]
+        return self._array_length
+    
+    def __add__(self, array):
+        if type(self) != type(array):
+            raise TypeError("Can only concatenate two arrays or two stacks")
+        # Create either new array or stack, depending of the own type
+        concat_array = type(self)(length = self._array_length
+                                           + array._array_length)
+        concat_array._coord = np.concatenate(self._coord, array.coord, axis=-2)
+        # Transfer only annotations,
+        # which are existent in both operands
+        arr_categories = list(array._annot.keys())
+        for category in self._annot.keys():
+            if category in arr_categories:
+                # If either annotation is None,
+                # the result is also None
+                self_annot = self._annot[category]
+                arr_annot = array._annot[category]
+                if self_annot is None or arr_annot is None:
+                    concat_array._annot[category] = None
+                else:
+                    concat_array._annot[category] = np.concatenate(self_annot,
+                                                                   arr_annot)
+        return concat_array
     
 
 class Atom(object):
     """
     A representation of a single atom.
     
+    The coordinates an annotations can be accessed directly.
+    
     Attributes
     ----------
-    annot : dict
-        The dictionary containing all annotations.
+    {annot} : scalar
+        Annotations for this atom.
     coord : ndarray(dtype=float)
-        ndarray containing the x, y and z coordinate of the atom.
+        ndarray containing the x, y and z coordinate of the atom. 
+    
+    Examples
+    --------
+    
+        >>> atom = Atom([1,2,3], chain_id="A")
+        >>> atom.atom_name = "CA"
+        >>> print(atom.atom_name)
+        CA
+        >>> print(atom.coord)
+        [1 2 3]
     """
     
     def __init__(self, coord, **kwargs):
@@ -264,7 +401,10 @@ class Atom(object):
         
         Parameters
         ----------
-        See class attributes
+        coord: list or ndarray
+            the x, y and z coordinates
+        kwargs
+            atom annotations as key value pair
         """
         self._annot = {}
         if "kwargs" in kwargs:
@@ -305,33 +445,87 @@ class Atom(object):
         return string + str(self.coord)
 
     
-class AtomArray(_AtomAnnotationList):
+class AtomArray(_AtomArrayBase):
     """
-    An array representation of a structure consisting of multiple atoms.
+    An array representation of a model consisting of multiple atoms.
+    
+    An `AtomArray` can be seen as a list of `Atom` instances.
+    Instead of using directly a list, this class uses an `numpy`
+    `ndarray` for each annotation category and the coordinates. These
+    coordinates can be accessed directly via the `coord` attribute. The
+    annotations are accessed either via the category as attribute name
+    or the `get_annotation()`, `set_annotation()` method. Usage of
+    custom annotations is achieved via `add_annotation()` or
+    `set_annotation()`.
+    
+    In order to get an an subarray of an `AtomArray`, `numpy` style
+    indexing is used. This includes slices, boolean arrays,
+    index arrays and even *Ellipsis* notation. Using a single integer as
+    index returns a single `Atom` instance.
+    
+    Inserting or appending an `AtomArray` into another `AtomArray` is
+    done with the '+' operator. Only the annotation categories, which are 
+    existing in both arrays are transferred to the new array. If an annotation
+    array is None in at least one of the arrays, the transferred annotation
+    is also None.
     
     Attributes
     ----------
-    annot : dict
-        The dictionary containing all annotation arrays.
+    {annot} : ndarray
+        Mutliple n-length annotation arrays.
     coord : ndarray(dtype=float)
         (n x 3) ndarray containing the x, y and z coordinate of the
         atoms.
+    
+    Examples
+    --------
+    
+    Creating an atom array from atoms:
+    
+        >>> atom1 = Atom([1,2,3], chain_id="A")
+        >>> atom2 = Atom([2,3,4], chain_id="A")
+        >>> atom3 = Atom([3,4,5], chain_id="B")
+        >>> atom_array = array([atom1, atom2, atom3])
+        >>> print(atom_array.array_length())
+        3
+    
+    Accessing an annotation array:
+    
+        >>> print(atom_array.chain_id)
+        ['A' 'A' 'B']
+        >>> print(atom_array.coord)
+        [[1 2 3]
+         [2 3 4]
+         [3 4 5]]
+    
+    `numpy` style filtering:
+    
+        >>> atom_array = atom_array[atom_array.chain_id == "A"]
+        >>> print(atom_array.array_length())
+        2
+        
+    Inserting an atom array:
+        
+        >>> insert = array(Atom([7,8,9], chain_id="C"))
+        atom_array = atom_array[0:1] + insert + atom_array[1:2]
+        >>> print(atom_array.chain_id)
+        ['A' 'C' 'A']
     """
     
-    def __init__(self, length=None):
+    def __init__(self, length):
         """
         Create an `AtomArray`.
         
         Parameters
         ----------
-        length : int, optional
-            If length is given, the attribute arrays will be created
-            with zeros.
+        length : int
+            The initial array length.
         """
         super().__init__(length)
-        if length == None:
-            return
-        self.coord = np.zeros((length, 3), dtype=float)
+        if length is None:
+            self._coord = None
+        else:
+            self._coord = np.full((length, 3), np.nan, dtype=float)
         
     def copy(self):
         """
@@ -344,25 +538,7 @@ class AtomArray(_AtomAnnotationList):
             A deep copy of this array.
         """
         new_array = AtomArray()
-        for name in self._annot:
-            new_array._annot[name] = np.copy(self._annot[name])
-        new_array.coord = np.copy(self.coord)
-        return new_array
-        
-    def check_integrity(self):
-        """
-        Check, if all attribute arrays have appropriate shapes.
-        
-        Returns
-        -------
-        integrity : bool
-            True, if the attribute shapes are consistent.
-        """
-        if not super().check_integrity():
-            return False
-        if self.coord.shape != (len(self), 3):
-            return False
-        return True
+        return self._copy_attributes(new_array)
     
     def get_atom(self, index):
         """
@@ -383,7 +559,7 @@ class AtomArray(_AtomAnnotationList):
         kwargs = {}
         for name, annotation in self._annot.items():
             kwargs[name] = annotation[index]
-        return Atom(coord = self.coord[index], kwargs=kwargs)
+        return Atom(coord = self._coord[index], kwargs=kwargs)
     
     def __iter__(self):
         """
@@ -400,7 +576,7 @@ class AtomArray(_AtomAnnotationList):
     
     def __getitem__(self, index):
         """
-        Obtain the atom instance or an subarray at the specified index.
+        Obtain a subarray or the atom instance at the specified index.
         
         Parameters
         ----------
@@ -424,11 +600,7 @@ class AtomArray(_AtomAnnotationList):
                                  "indices")
         else:
             new_array = AtomArray()
-            for annotation in self._annot:
-                new_array._annot[annotation] = (self._annot[annotation]
-                                                  .__getitem__(index))
-            new_array.coord = self.coord.__getitem__(index)
-            return new_array
+            return self._subarray(new_array, index)
         
     def __setitem__(self, index, atom):
         """
@@ -441,12 +613,7 @@ class AtomArray(_AtomAnnotationList):
         atom : Atom
             The atom to be set.
         """
-        if isinstance(index, int):
-            for name in self._annot:
-                self._annot[name] = atom._annot[name]
-            self.coord[index] = atom.coord
-        else:
-            raise IndexError("Index must be integer")
+        self._set_element(self, index, atom)
         
     def __delitem__(self, index):
         """
@@ -457,12 +624,7 @@ class AtomArray(_AtomAnnotationList):
         index : int
             The position where the atom should be deleted.
         """
-        if isinstance(index, int):
-            for name in self._annot:
-                self._annot[name] = np.delete(self._annot[name], index, axis=0)
-            self.coord = np.delete(self.coord, index, axis=0)
-        else:
-            raise IndexError("Index must be integer")
+        self._del_element(self, index)
         
     def __len__(self):
         """
@@ -473,8 +635,7 @@ class AtomArray(_AtomAnnotationList):
         length : int
             Length of the array.
         """
-        # length is determined by length of coord attribute
-        return self.coord.shape[0]
+        return self.array_length()
     
     def __eq__(self, item):
         """
@@ -494,8 +655,6 @@ class AtomArray(_AtomAnnotationList):
         if not super().__eq__(item):
             return False
         if not isinstance(item, AtomArray):
-            return False
-        if not np.array_equal(self.coord, item.coord):
             return False
         return True
     
@@ -519,24 +678,66 @@ class AtomArray(_AtomAnnotationList):
         return string
 
 
-class AtomArrayStack(_AtomAnnotationList):
+class AtomArrayStack(_AtomArrayBase):
     """
-    A collection of multiple atom arrays, where each atom array has
-    equal annotation arrays.
+    A collection of multiple `AtomArray` instances, where each atom
+    array has equal annotation arrays.
     
-    Since the annotations are equal for each array the annotaion arrays
-    are 1-D, while the coordinate array is 3-D (m x n x 3).
+    Effectively, this means that each atom is occuring in every array in
+    the stack at differing coordinates. This situation arises e.g. in
+    NMR-elucidated or simulated structures. Since the annotations are
+    equal for each array the annotaion arrays are 1-D, while the
+    coordinate array is 3-D (m x n x 3).
+    
+    Indexing works similar to `AtomArray`, with the difference, that two
+    index dimension are possible: The first index dimension specifies
+    the array(s), the second index dimension specifies the atoms in each
+    array (same as the index in `AtomArray`). Using a single integer as
+    first dimension index returns a single `AtomArray` instance.
+    
+    Concatenation of atoms for each array in the stack is done using the
+    '+' operator. For addition of atom arrays onto the stack use the
+    `stack()` method.
     
     Attributes
     ----------
-    annot : dict
-        The dictionary containing all annotation arrays.
+    {annot} : ndarray
+        Mutliple n-length annotation arrays.
     coord : ndarray(dtype=float)
         (m x n x 3) ndarray containing the x, y and z coordinate of the
         atoms.
+    
+    Examples
+    --------
+    
+    Creating an atom array stack from two arrays:
+    
+        >>> atom1 = Atom([1,2,3], chain_id="A")
+        >>> atom1 = Atom([2,3,4], chain_id="A")
+        >>> atom1 = Atom([3,4,5], chain_id="B")
+        >>> atom_array1 = array(atom_array)
+        >>> print(atom_array1.coord)
+        [[1 2 3]
+         [2 3 4]
+         [3 4 5]]
+        >>> atom_array2 = atom_array1.copy()
+        >>> atom_array2.coord += 3
+        >>> print(atom_array2.coord)
+        [[4 5 6]
+         [5 6 7]
+         [6 7 8]]
+        >>> array_stack = stack([atom_array1, atom_array2])
+        >>> print(array_stack.coord)
+        [[[1 2 3]
+          [2 3 4]
+          [3 4 5]]
+        
+         [[4 5 6]
+          [5 6 7]
+          [6 7 8]]]
     """
     
-    def __init__(self, depth=None, length=None):
+    def __init__(self, depth, length):
         """
         Create an `AtomArrayStack`.
         
@@ -549,8 +750,9 @@ class AtomArrayStack(_AtomAnnotationList):
         """
         super().__init__(length)
         if depth == None or length == None:
-            return
-        self.coord = np.zeros((depth, length, 3), dtype=float)
+            self._coord = None
+        else:
+            self._coord = np.zeros((depth, length, 3), dtype=float)
         
     def copy(self):
         """
@@ -563,25 +765,7 @@ class AtomArrayStack(_AtomAnnotationList):
             A deep copy of this stack.
         """
         new_stack = AtomArrayStack()
-        for name in self._annot:
-            new_stack._annot[name] = np.copy(self._annot[name])
-        new_stack.coord = np.copy(self.coord)
-        return new_stack
-    
-    def check_integrity(self):
-        """
-        Check, if all attribute arrays have appropriate shapes.
-        
-        Returns
-        -------
-        integrity : bool
-            True, if the attribute shapes are consistent.
-        """
-        if not super().check_integrity():
-            return False
-        if self.coord.shape != (len(self), super().__len__(), 3):
-            return False
-        return True
+        return self._copy_attributes(new_stack)
     
     def get_array(self, index):
         """
@@ -603,8 +787,22 @@ class AtomArrayStack(_AtomAnnotationList):
         array = AtomArray()
         for name in self._annot:
             array._annot[name] = self._annot[name]
-        array.coord = self.coord[index]
+        array._coord = self._coord[index]
         return array
+    
+    def stack_depth(self):
+        """
+        Get the depth of the stack.
+        
+        This value represents the amount of atom arrays in the stack.
+        It is the same as ``len(array)``.
+        
+        Returns
+        -------
+        length : int
+            Length of the array(s).
+        """
+        return len(self)
 
     def __iter__(self):
         """
@@ -641,30 +839,21 @@ class AtomArrayStack(_AtomAnnotationList):
             return self.get_array(index)
         elif isinstance(index, tuple):
             if len(index) != 2:
-                raise IndexError("AtomArrayStack can take an index with more "
-                                 "than two dimensions")
+                raise IndexError("AtomArrayStack cannot take an index "
+                                 "with more than two dimensions")
             if type(index[0]) == int:
-                if type(index[1]) == int:
-                    array = self.get_array(index[0])
-                    return array.get_atom(index[1])
-                else:
-                    array = self.get_array(index[0])
-                    return array.__getitem__(index[1])
+                array = self.get_array(index[0])
+                return array.__getitem__(index[1])
             else:
                 new_stack = AtomArrayStack()
-                for name in self._annot:
-                    new_stack._annot[name] = (self._annot[name]
-                                                .__getitem__(index[1]))
-                if index[0] is Ellipsis:
-                    new_stack.coord = self.coord[:,index[1]]
-                else:
-                    new_stack.coord = self.coord.__getitem__(index)
+                new_stack = self._subarray(index[1])
+                if index[0] is not Ellipsis:
+                    new_stack._coord = new_stack._coord[index[0]]
                 return new_stack
         else:
             new_stack = AtomArrayStack()
-            for name in self._annot:
-                new_stack._annot[name] = (self._annot[name])
-            new_stack.coord = self.coord.__getitem__(index)
+            new_stack = self._copy_attributes(new_stack)
+            new_stack._coord = self._coord[index]
             return new_stack
             
     
@@ -684,7 +873,7 @@ class AtomArrayStack(_AtomAnnotationList):
         if not super(AtomArray, array).__eq__(array):
             raise ValueError("The array's atom annotations do not fit")
         if isinstance(index, int):
-            self.coord[index] = array.coord
+            self._coord[index] = array._coord
         else:
             raise IndexError("Index must be integer")
         
@@ -698,7 +887,7 @@ class AtomArrayStack(_AtomAnnotationList):
             The position where the atom array should be deleted.
         """
         if isinstance(index, int):
-            self.coord = np.delete(self.coord, index, axis=0)
+            self._coord = np.delete(self._coord, index, axis=0)
         else:
             raise IndexError("Index must be integer")
     
@@ -712,7 +901,7 @@ class AtomArrayStack(_AtomAnnotationList):
             depth of the array.
         """
         # length is determined by length of coord attribute
-        return self.coord.shape[0]
+        return self._coord.shape[0]
     
     def __eq__(self, item):
         """
@@ -732,8 +921,6 @@ class AtomArrayStack(_AtomAnnotationList):
         if not super().__eq__(item):
             return False
         if not isinstance(item, AtomArrayStack):
-            return False
-        if not np.array_equal(self.coord, item.coord):
             return False
         return True
     
@@ -764,13 +951,25 @@ def array(atoms):
     
     Parameters
     ----------
-    atoms : array_like(Atom)
+    atoms : iterable(Atom)
         The atoms to be combined in an array.
     
     Returns
     -------
     array : AtomArray
         The listed atoms as array.
+    
+    Examples
+    --------
+    
+    Creating an atom array from atoms:
+    
+        >>> atom1 = Atom([1,2,3], chain_id="A")
+        >>> atom2 = Atom([2,3,4], chain_id="A")
+        >>> atom3 = Atom([3,4,5], chain_id="B")
+        >>> atom_array = array([atom1, atom2, atom3])
+        >>> print(atom_array.array_length())
+        3
     """
     # Check if all atoms have the same annotation names
     # Equality check requires sorting
@@ -784,7 +983,7 @@ def array(atoms):
     for i in range(len(atoms)):
         for name in names:
             array._annot[name] = atoms._annot[name]
-        array.coord[i] = atoms[i].coord
+        array._coord[i] = atoms[i]._coord
     return array
 
 def stack(arrays):
@@ -795,13 +994,39 @@ def stack(arrays):
     
     Parameters
     ----------
-    arrays : array_like(AtomArray)
+    arrays : iterable(AtomArray)
         The atom arrays to be combined in a stack.
     
     Returns
     -------
     stack : AtomArrayStack
         The stacked atom arrays.
+        
+    Creating an atom array stack from two arrays:
+    
+        >>> atom1 = Atom([1,2,3], chain_id="A")
+        >>> atom1 = Atom([2,3,4], chain_id="A")
+        >>> atom1 = Atom([3,4,5], chain_id="B")
+        >>> atom_array1 = array(atom_array)
+        >>> print(atom_array1.coord)
+        [[1 2 3]
+         [2 3 4]
+         [3 4 5]]
+        >>> atom_array2 = atom_array1.copy()
+        >>> atom_array2.coord += 3
+        >>> print(atom_array2.coord)
+        [[4 5 6]
+         [5 6 7]
+         [6 7 8]]
+        >>> array_stack = stack([atom_array1, atom_array2])
+        >>> print(array_stack.coord)
+        [[[1 2 3]
+          [2 3 4]
+          [3 4 5]]
+        
+         [[4 5 6]
+          [5 6 7]
+          [6 7 8]]]
     """
     for array in arrays:
         # Check if all arrays share equal annotations
@@ -811,8 +1036,8 @@ def stack(arrays):
     array_stack = AtomArrayStack()
     for name, annotation in arrays[0]._annot.items():
         array_stack._annot[name] = annotation
-    coord_list = [array.coord for array in arrays] 
-    array_stack.coord = np.stack(coord_list, axis=0)
+    coord_list = [array._coord for array in arrays] 
+    array_stack._coord = np.stack(coord_list, axis=0)
     return array_stack
 
 
@@ -859,6 +1084,6 @@ def coord(item):
     """
 
     if type(item) in (Atom, AtomArray, AtomArrayStack):
-        return item.coord
+        return item._coord
     else:
         return np.array(item)
