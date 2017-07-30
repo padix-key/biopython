@@ -69,7 +69,6 @@ the original `ndarray`.
 """
 
 import numpy as np
-import Bio.PDB
 
 class _AtomArrayBase(object):
     """
@@ -82,23 +81,15 @@ class _AtomArrayBase(object):
         """
         Create the annotation arrays
         """
+        self._annot = {}
         self._array_length = length
         self._coord = None
-        self._annot = {}
-        self.add_annotation("chain_id")
-        self.add_annotation("res_id")
-        self.add_annotation("res_name")
-        self.add_annotation("hetero")
-        self.add_annotation("atom_name")
-        self.add_annotation("element")
-        if length == None:
-            return
-        self.chain_id = np.zeros(length, dtype="U3")
-        self.res_id = np.zeros(length, dtype=int)
-        self.res_name = np.zeros(length, dtype="U3")
-        self.hetero = np.zeros(length, dtype=bool)
-        self.atom_name = np.zeros(length, dtype="U6")
-        self.element = np.zeros(length, dtype="U2")
+        self.add_annotation("chain_id", dtype="U3")
+        self.add_annotation("res_id", dtype=int)
+        self.add_annotation("res_name", dtype="U3")
+        self.add_annotation("hetero", dtype=bool)
+        self.add_annotation("atom_name", dtype="U6")
+        self.add_annotation("element", dtype="U2")
         
     def array_length(self):
         """
@@ -114,23 +105,28 @@ class _AtomArrayBase(object):
         """
         return self._array_length
         
-    def add_annotation(self, category):
+    def add_annotation(self, category, dtype):
         """
         Add an annotation category, if not already existing.
         
-        The initial value of the new category is `None`.
+        Initially the new annotation is filled with the `zero`
+        representation of the given type.
         
         Parameters
         ----------
         category : string
             The annotation category to be added.
+        dtype : type or string
+            A type instance or a valid `numpy` `dtype` string.
+            Defines the type of the annotation
         
         See Also
         --------
         set_annotation
         """
         if category not in self._annot:
-            self._annot[str(category)] = None
+            self._annot[str(category)] = np.zeros(self._array_length,
+                                                  dtype=dtype)
             
     def del_annotation(self, category):
         """
@@ -176,8 +172,8 @@ class _AtomArrayBase(object):
             The new value of the annotation category. The size of the
             array must be the same as the array length.
         """
-        if not instanceof(array, np.ndarray) and array is not None:
-            raise TypeError("Value must be ndarray or None")
+        if not isinstance(array, np.ndarray):
+            raise TypeError("Value must be ndarray")
         if len(array) != self._array_length:
             raise IndexError("Expected array length "
                              + str(self._array_length)
@@ -240,15 +236,17 @@ class _AtomArrayBase(object):
         for name in self._annot.keys():
             attr.append(name)
             
-    def _subarray(self, new_object, index):
+    def _subarray(self, index):
+        new_coord = self._coord[..., index, :]
+        new_length = new_coord.shape[-2]
+        if isinstance(self, AtomArray):
+            new_object = type(self)(length=new_length)
+        if isinstance(self, AtomArrayStack):
+            new_object = type(self)(depth=len(coord), length=new_length)
+        new_object._coord = new_coord
         for annotation in self._annot:
-            if self._annot[annotation] is None:
-                new_object._annot[annotation] = None
-            else:
-                new_object._annot[annotation] = (self._annot[annotation]
-                                                 .__getitem__(index))
-        new_object._coord = self._coord[..., index, :]
-        new_object._array_length = new_object._coord.shape[-2]
+            new_object._annot[annotation] = (self._annot[annotation]
+                                             .__getitem__(index))
         return new_object
         
     def _set_element(self, index, atom):
@@ -271,7 +269,12 @@ class _AtomArrayBase(object):
         else:
             raise IndexError("Index must be integer")
         
-    def _copy_attributes(self, new_object):
+    def _copy_attributes(self):
+        if isinstance(self, AtomArray):
+            new_object = type(self)(length=self.array_length())
+        if isinstance(self, AtomArrayStack):
+            new_object = type(self)(depth=self.stack_depth(),
+                                    length=self.array_length())
         for name in self._annot:
             new_object._annot[name] = np.copy(self._annot[name])
         new_object._coord = np.copy(self._coord)
@@ -359,15 +362,9 @@ class _AtomArrayBase(object):
         arr_categories = list(array._annot.keys())
         for category in self._annot.keys():
             if category in arr_categories:
-                # If either annotation is None,
-                # the result is also None
-                self_annot = self._annot[category]
-                arr_annot = array._annot[category]
-                if self_annot is None or arr_annot is None:
-                    concat_array._annot[category] = None
-                else:
-                    concat_array._annot[category] = np.concatenate(self_annot,
-                                                                   arr_annot)
+                annot = self._annot[category]
+                a_annot = array._annot[category]
+                concat_array._annot[category] = np.concatenate(annot, a_annot)
         return concat_array
     
 
@@ -465,9 +462,7 @@ class AtomArray(_AtomArrayBase):
     
     Inserting or appending an `AtomArray` into another `AtomArray` is
     done with the '+' operator. Only the annotation categories, which are 
-    existing in both arrays are transferred to the new array. If an annotation
-    array is None in at least one of the arrays, the transferred annotation
-    is also None.
+    existing in both arrays are transferred to the new array.
     
     Attributes
     ----------
@@ -537,8 +532,7 @@ class AtomArray(_AtomArrayBase):
         new_array : AtomArray
             A deep copy of this array.
         """
-        new_array = AtomArray()
-        return self._copy_attributes(new_array)
+        return self._copy_attributes()
     
     def get_atom(self, index):
         """
@@ -599,7 +593,6 @@ class AtomArray(_AtomArrayBase):
                 raise IndexError("AtomArray cannot take multidimensional"
                                  "indices")
         else:
-            new_array = AtomArray()
             return self._subarray(new_array, index)
         
     def __setitem__(self, index, atom):
@@ -743,7 +736,7 @@ class AtomArrayStack(_AtomArrayBase):
         
         Parameters
         ----------
-        depth, length : int, optional
+        depth, length : int
             If length and depth is given, the attribute arrays will be
             created with zeros. `depth` corresponds to the first
             dimension, `length` to the second.
@@ -764,8 +757,7 @@ class AtomArrayStack(_AtomArrayBase):
         new_stack: AtomArrayStack
             A deep copy of this stack.
         """
-        new_stack = AtomArrayStack()
-        return self._copy_attributes(new_stack)
+        return self._copy_attributes()
     
     def get_array(self, index):
         """
@@ -845,13 +837,11 @@ class AtomArrayStack(_AtomArrayBase):
                 array = self.get_array(index[0])
                 return array.__getitem__(index[1])
             else:
-                new_stack = AtomArrayStack()
                 new_stack = self._subarray(index[1])
                 if index[0] is not Ellipsis:
                     new_stack._coord = new_stack._coord[index[0]]
                 return new_stack
         else:
-            new_stack = AtomArrayStack()
             new_stack = self._copy_attributes(new_stack)
             new_stack._coord = self._coord[index]
             return new_stack
@@ -982,8 +972,8 @@ def array(atoms):
     array = AtomArray(length=len(atoms))
     for i in range(len(atoms)):
         for name in names:
-            array._annot[name] = atoms._annot[name]
-        array._coord[i] = atoms[i]._coord
+            array._annot[name][i] = atoms[i]._annot[name]
+        array._coord[i] = atoms[i].coord
     return array
 
 def stack(arrays):
