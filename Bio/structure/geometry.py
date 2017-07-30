@@ -9,11 +9,10 @@ structure, mainly lenghts and angles.
 """
 
 import numpy as np
-from . import Atom, AtomArray, AtomArrayStack
-from . import coord
-from . import vector_dot, norm_vector
-from . import filter_backbone
-from . import BadStructureError
+from .atoms import Atom, AtomArray, AtomArrayStack, coord
+from .util import vector_dot, norm_vector
+from .filter import filter_backbone
+from .error import BadStructureError
 
 def distance(atoms1, atoms2):
     """

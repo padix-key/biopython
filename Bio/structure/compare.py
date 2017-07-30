@@ -9,8 +9,8 @@ comparing multiple structures with each other.
 """
 
 import numpy as np
-from . import Atom, AtomArray, AtomArrayStack
-from . import vector_dot
+from .atoms import Atom, AtomArray, AtomArrayStack
+from .util import vector_dot
 
 def rmsd(reference, subject):
     """

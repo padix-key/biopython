@@ -4,5 +4,5 @@
 # as part of this package.
 
 """
-A subpackage for reading and writing strcture related data.
+A subpackage for reading and writing structure related data.
 """

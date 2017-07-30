@@ -4,7 +4,7 @@
 # as part of this package.
 
 import numpy as np
-from ... import Atom, AtomArray, AtomArrayStack
+from ...atoms import Atom, AtomArray, AtomArrayStack
 
 _atom_records = {"hetero"    : (0,  6),
                  "atom_id"   : (6,  11),

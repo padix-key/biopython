@@ -9,9 +9,9 @@ a protein or single atoms.
 """
 
 import numpy as np
-from . import AdjacencyMap
-from . import distance
-from . import vector_dot
+from .adjacency import AdjacencyMap
+from .geometry import distance
+from .util import vector_dot
 
 
 def sasa(array, **kwargs):

@@ -9,7 +9,7 @@ that can be applied on structures.
 """
 
 import numpy as np
-from . import centroid
+from .geometry import centroid
 
 def translate(atoms, vector):
     """

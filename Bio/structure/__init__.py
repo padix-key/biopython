@@ -29,20 +29,16 @@ An `Entity` from `BIO.PDB` can be converted into an `AtomArrray` or
 `AtomArrayStack` and vice versa.
 """
 
-from .atoms import *
-from .residues import *
-from .util import *
-from .error import *
-
-from .filter import *
-from .integrity import *
-
-from .geometry import *
-from .compare import *
 from .adjacency import *
+from .atoms import *
+from .compare import *
+from .error import *
+from .filter import *
+from .geometry import *
+from .integrity import *
+from .residues import *
 from .sasa import *
-
-from .transform import *
 from .superimpose import *
-
+from .transform import *
+# util is used internal
 from .vis import *

@@ -4,7 +4,7 @@
 # as part of this package.
 
 import numpy as np
-from ... import Atom, AtomArray, AtomArrayStack
+from ...atoms import Atom, AtomArray, AtomArrayStack
 
 class NpzFile(object):
     

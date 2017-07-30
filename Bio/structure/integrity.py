@@ -8,8 +8,8 @@ This module allows checking of atom arrays and atom array stacks for errors in t
 """
 
 import numpy as np
-from . import Atom, AtomArray, AtomArrayStack
-from . import filter_backbone
+from .atoms import Atom, AtomArray, AtomArrayStack
+from .filter import filter_backbone
 
 
 def check_id_continuity(array):

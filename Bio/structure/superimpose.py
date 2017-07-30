@@ -8,8 +8,8 @@ This module provides functions for structure superimposition.
 """
 
 import numpy as np
-from . import centroid
-from . import Atom, AtomArray, AtomArrayStack, stack
+from .geometry import centroid
+from .atoms import Atom, AtomArray, AtomArrayStack, stack
 
 def superimpose(reference, subject, ca_only=True):
     """

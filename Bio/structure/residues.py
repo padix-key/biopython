@@ -9,7 +9,7 @@ atom level.
 """
 
 import numpy as np
-from . import AtomArray, AtomArrayStack
+from .atoms import AtomArray, AtomArrayStack
 
 def apply_residue_wise(array, data, function, axis=None):
     """

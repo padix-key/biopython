@@ -9,7 +9,7 @@ a location.
 """
 
 import numpy as np
-from . import distance
+from .geometry import distance
 
 class AdjacencyMap(object):
     """

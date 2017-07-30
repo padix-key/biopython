@@ -8,7 +8,7 @@ This module provides utility functions for creating filters on atom arrays and a
 """
 
 import numpy as np
-from . import Atom, AtomArray, AtomArrayStack
+from .atoms import Atom, AtomArray, AtomArrayStack
 
 _ext_aa_list = ["ALA","ARG","ASN","ASP","CYS","GLN","GLU","GLY","HIS","ILE",
                 "LEU","LYS","MET","PHE","PRO","SER","THR","TRP","TYR","VAL",
